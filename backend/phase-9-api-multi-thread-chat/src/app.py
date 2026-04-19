@@ -336,7 +336,15 @@ async def metrics():
     return _observability.get_metrics()
 
 
-# ── Run with: uvicorn app:app --reload ────────────────────────────────────────
+# ── Environment ───────────────────────────────────────────────────────────────
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+load_dotenv(ROOT / ".env")
+
+
+# ── Run with: python app.py ─────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    # Render provides a PORT environment variable
+    port = int(os.getenv("PORT", 8000))
+    print(f"[API] Starting server on port {port}...")
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)

@@ -352,6 +352,8 @@ def build_indices():
     print(f"[indexer] Indexed: {upserted}/{total_chunks}")
     print(f"[indexer] Success Rate: {success_rate:.1%}")
 
+    RUN_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    
     if failed_items:
         failed_path = RUN_LOG_DIR / "failed-items.json"
         print(f"[indexer] Logging {len(failed_items)} failures to {failed_path}")
