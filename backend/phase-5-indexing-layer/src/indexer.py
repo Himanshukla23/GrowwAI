@@ -229,7 +229,8 @@ def build_indices():
     class CustomFastEmbed:
         def __init__(self, model_name):
             self.model = TextEmbedding(model_name=model_name)
-            self.name = model_name  # ChromaDB requires this property
+        def name(self):
+            return "all-MiniLM-L6-v2"
         def __call__(self, input):
             return [v.tolist() for v in self.model.embed(input)]
 

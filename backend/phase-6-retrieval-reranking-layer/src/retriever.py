@@ -35,7 +35,8 @@ class Retriever:
             def __init__(self, model_name):
                 from fastembed import TextEmbedding
                 self.model = TextEmbedding(model_name=model_name)
-                self.name = model_name
+            def name(self):
+                return "all-MiniLM-L6-v2"
             def __call__(self, input):
                 return [v.tolist() for v in self.model.embed(input)]
         
