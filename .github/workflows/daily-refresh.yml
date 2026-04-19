@@ -26,4 +26,5 @@ jobs:
           CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
           CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
           EMBEDDING_MODEL: ${{ vars.EMBEDDING_MODEL || 'all-MiniLM-L6-v2' }}
+          CHROMA_COLLECTION: groww_mf_chunks_v2
         run: python backend/phase-1-scheduler-service/src/scheduler.py
