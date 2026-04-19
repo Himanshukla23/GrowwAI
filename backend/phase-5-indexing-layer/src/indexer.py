@@ -21,6 +21,7 @@ import datetime as dt
 import numpy as np
 import chromadb
 from chromadb.utils import embedding_functions
+from typing import List, Dict
 from fastembed import TextEmbedding
 from dotenv import load_dotenv
 
