@@ -30,9 +30,9 @@ class Retriever:
         """Initializes the ChromaDB Client and Embedding Function."""
         self.client = self._connect_chroma()
         
-        print(f"[Retriever] Loading embedding function: {MODEL_NAME}")
-        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=MODEL_NAME
+        print(f"[Retriever] Loading FastEmbed function: {MODEL_NAME}")
+        self.embedding_function = embedding_functions.FastEmbedEmbeddingFunction(
+            model_name=f"sentence-transformers/{MODEL_NAME}"
         )
         
         try:

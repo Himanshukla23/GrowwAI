@@ -1,3 +1,5 @@
+# Lightweight AI dependencies for 512MB RAM
+fastembed
 fastapi
 uvicorn
 pandas
@@ -8,7 +10,5 @@ pydantic
 numpy
 scikit-learn
 aiofiles
-streamlit
-sentence-transformers
-torch
 chromadb
+

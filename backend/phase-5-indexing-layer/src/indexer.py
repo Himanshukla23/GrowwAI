@@ -21,7 +21,7 @@ import datetime as dt
 import numpy as np
 import chromadb
 from chromadb.utils import embedding_functions
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 from dotenv import load_dotenv
 
 # ── Load .env ──────────────────────────────────────────────────────────────────
@@ -151,17 +151,11 @@ def _validate_metadata_presence(chunks: list) -> list:
     return warnings
 
 
-def _validate_embeddings(model: SentenceTransformer, texts: list):
-    """
-    Embedding-level gate (spec 10.1-F):
-      - Generate embeddings
-      - Reject NaN vectors
-      - Verify dimension consistency (must be VECTOR_DIMENSION)
-    Returns (embeddings, nan_mask, elapsed_seconds).
-    """
+def _validate_embeddings(model, texts: List[str]):
+    """Computes embeddings using fastembed and checks for validity."""
     print(f"[indexer] Computing embeddings for {len(texts)} chunks...")
     t0 = time.perf_counter()
-    embeddings = model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
+    embeddings = np.array(list(model.embed(texts)))
     elapsed = time.perf_counter() - t0
     print(f"[indexer] Embeddings computed in {elapsed:.2f}s ({len(texts)/elapsed:.1f} chunks/s)")
 
@@ -209,8 +203,8 @@ def build_indices():
         metadatas.append(_flatten_metadata(chunk))
 
     # ── 6d. Compute & validate embeddings ─────────────────────────────────────
-    print(f"[indexer] Initializing embedding model {MODEL_NAME}...")
-    model = SentenceTransformer(MODEL_NAME)
+    print(f"[indexer] Initializing fastembed model {MODEL_NAME}...")
+    model = TextEmbedding(model_name=f"sentence-transformers/{MODEL_NAME}")
     embeddings, nan_mask, embed_elapsed = _validate_embeddings(model, texts)
 
     # Filter out NaN rows
@@ -230,13 +224,14 @@ def build_indices():
     # SentenceTransformerEmbeddingFunction. But since we pre-compute embeddings
     # locally (for quality validation), we pass them directly in upsert().
     # The embedding_function is registered so query-time works seamlessly.
-    sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=MODEL_NAME
+    # Using FastEmbed for 512MB RAM compatibility
+    fastembed_ef = embedding_functions.FastEmbedEmbeddingFunction(
+        model_name=f"sentence-transformers/{MODEL_NAME}"
     )
 
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
-        embedding_function=sentence_transformer_ef,
+        embedding_function=fastembed_ef,
         metadata={"hnsw:space": "cosine"},
     )
     print(f"[indexer] Collection '{COLLECTION_NAME}' ready (existing count: {collection.count()})")
