@@ -230,6 +230,13 @@ def build_indices():
     print("LOG CHECK: RUNNING SUPER LIGHTER SEARCH V2")
     print("###################################################")
 
+    # FORCE RESET for model migration (768 -> 384 dims)
+    try:
+        print(f"[indexer] Wiping old collection '{COLLECTION_NAME}' to fix conflict...")
+        client.delete_collection(name=COLLECTION_NAME)
+    except:
+        pass
+
     # Custom wrapper for FastEmbed to ensure compatibility with all Chroma versions
     class SuperLighterSearch:
         def __init__(self, model_name):
