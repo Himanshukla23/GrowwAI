@@ -352,19 +352,25 @@ def build_indices():
     print(f"[indexer] Indexed: {upserted}/{total_chunks}")
     print(f"[indexer] Success Rate: {success_rate:.1%}")
 
-    RUN_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    # Ensure absolute path for CI reliability
+    log_dir = RUN_LOG_DIR.resolve()
     
+    # ── 6h. Save Failed Items (Safe Logging Implementation) ───────────────────
     if failed_items:
-        failed_path = RUN_LOG_DIR / "failed-items.json"
-        print(f"[indexer] Logging {len(failed_items)} failures to {failed_path}")
-        failed_payload = [
-            {"chunk_id": f[1], "error_reason": f[2]}
-            for f in failed_items
-        ]
-        with failed_path.open("w", encoding="utf-8") as f:
-            json.dump(failed_payload, f, indent=2)
+        try:
+            log_dir.mkdir(parents=True, exist_ok=True)
+            failed_path = log_dir / "failed-items.json"
+            print(f"[indexer] Logging {len(failed_items)} failures to {failed_path}")
+            failed_payload = [
+                {"chunk_id": f[1], "error_reason": f[2]}
+                for f in failed_items
+            ]
+            with failed_path.open("w", encoding="utf-8") as f:
+                json.dump(failed_payload, f, indent=2)
+        except Exception as e:
+            print(f"[indexer] WARNING: Could not save failed-items.json: {e}")
 
-    # ── 6i. Run summary ──────────────────────────────────────────────────────
+    # ── 6i. Run summary (Safe Logging Implementation) ─────────────────────────
     run_elapsed = time.perf_counter() - run_start
     summary = {
         "run_timestamp":       run_ts,
@@ -382,9 +388,14 @@ def build_indices():
         "total_latency_s":     round(run_elapsed, 2),
     }
 
-    summary_path = RUN_LOG_DIR / "latest-index-run.json"
-    with summary_path.open("w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2)
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        summary_path = log_dir / "latest-index-run.json"
+        with summary_path.open("w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+        print(f"[indexer] Summary saved to {summary_path}")
+    except Exception as e:
+        print(f"[indexer] WARNING: Could not save latest-index-run.json: {e}")
 
     print(f"[indexer] === Done === Exit Code: {exit_code}")
     sys.exit(exit_code)
