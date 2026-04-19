@@ -42,7 +42,8 @@ CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 # ── Constants ──────────────────────────────────────────────────────────────────
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 VECTOR_DIMENSION = 384
-COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks")
+COLLECTION_NAME = "groww_mf_chunks_v3"  # HARDCODED TO FIX CONFLICTS
+print(f"[indexer] TARGET COLLECTION: {COLLECTION_NAME}")
 BATCH_SIZE = 50           # controlled batch size for throughput and retry safety
 MAX_RETRIES = 3           # per-batch retry count
 
@@ -227,7 +228,7 @@ def build_indices():
     # locally (for quality validation), we pass them directly in upsert().
     # The embedding_function is registered so query-time works seamlessly.
     print("###################################################")
-    print("LOG CHECK: RUNNING SUPER LIGHTER SEARCH V2")
+    print(f"LOG CHECK: TARGETING COLLECTION '{COLLECTION_NAME}'")
     print("###################################################")
 
     # FORCE RESET for model migration (768 -> 384 dims)

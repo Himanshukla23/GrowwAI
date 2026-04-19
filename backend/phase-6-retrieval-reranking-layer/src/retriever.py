@@ -23,7 +23,7 @@ CHROMA_TENANT = os.getenv("CHROMA_TENANT", "").strip()
 CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
-COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks")
+COLLECTION_NAME = "groww_mf_chunks_v3"
 
 class Retriever:
     def __init__(self):
