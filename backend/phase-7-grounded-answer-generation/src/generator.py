@@ -21,12 +21,12 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 
 class AnswerGenerator:
     def __init__(self):
-        if not GROQ_API_KEY:
-            print("[Generator] FATAL: GROQ_API_KEY is missing from .env")
-            sys.exit(1)
-            
-        self.client = Groq(api_key=GROQ_API_KEY)
-        print(f"[Generator] Initialized with model {GROQ_MODEL}")
+        self.client = None
+        if GROQ_API_KEY:
+            self.client = Groq(api_key=GROQ_API_KEY)
+            print(f"[Generator] Initialized with model {GROQ_MODEL}")
+        else:
+            print("[Generator] WARNING: GROQ_API_KEY is missing. Answer generation will be disabled.")
 
     def generate_answer(self, query: str, context: str) -> str:
         """
