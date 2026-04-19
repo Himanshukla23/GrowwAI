@@ -225,10 +225,14 @@ def build_indices():
     # SentenceTransformerEmbeddingFunction. But since we pre-compute embeddings
     # locally (for quality validation), we pass them directly in upsert().
     # The embedding_function is registered so query-time works seamlessly.
-    # Using FastEmbed for 512MB RAM compatibility
-    fastembed_ef = embedding_functions.FastEmbedEmbeddingFunction(
-        model_name=f"sentence-transformers/{MODEL_NAME}"
-    )
+    # Custom wrapper for FastEmbed to ensure compatibility with all Chroma versions
+    class CustomFastEmbed:
+        def __init__(self, model_name):
+            self.model = TextEmbedding(model_name=model_name)
+        def __call__(self, input):
+            return [v.tolist() for v in self.model.embed(input)]
+
+    fastembed_ef = CustomFastEmbed(model_name=f"sentence-transformers/{MODEL_NAME}")
 
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,

@@ -30,10 +30,15 @@ class Retriever:
         """Initializes the ChromaDB Client and Embedding Function."""
         self.client = self._connect_chroma()
         
-        print(f"[Retriever] Loading FastEmbed function: {MODEL_NAME}")
-        self.embedding_function = embedding_functions.FastEmbedEmbeddingFunction(
-            model_name=f"sentence-transformers/{MODEL_NAME}"
-        )
+        print(f"[Retriever] Initializing Custom FastEmbed: {MODEL_NAME}")
+        class CustomFastEmbed:
+            def __init__(self, model_name):
+                from fastembed import TextEmbedding
+                self.model = TextEmbedding(model_name=model_name)
+            def __call__(self, input):
+                return [v.tolist() for v in self.model.embed(input)]
+        
+        self.embedding_function = CustomFastEmbed(model_name=f"sentence-transformers/{MODEL_NAME}")
         
         try:
             self.collection = self.client.get_collection(
