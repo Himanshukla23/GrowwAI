@@ -34,11 +34,17 @@ class Retriever:
         class CustomFastEmbed:
             def __init__(self, model_name):
                 from fastembed import TextEmbedding
-                self.model = TextEmbedding(model_name=model_name)
+                self.model = TextEmbedding(model_name=model_name, cache_dir=str(ROOT / "data" / "fastembed_cache"))
             def name(self):
                 return "all-MiniLM-L6-v2"
             def __call__(self, input):
-                return [v.tolist() for v in self.model.embed(input)]
+                if isinstance(input, str):
+                    input = [input]
+                return list(self.model.embed(list(input)))
+            def embed_query(self, input):
+                return self(input)
+            def embed_documents(self, input):
+                return self(input)
         
         self.embedding_function = CustomFastEmbed(model_name=f"sentence-transformers/{MODEL_NAME}")
         

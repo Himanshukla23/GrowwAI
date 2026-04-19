@@ -208,7 +208,10 @@ def build_indices():
 
     # ── 6d. Compute & validate embeddings ─────────────────────────────────────
     print(f"[indexer] Initializing fastembed model {MODEL_NAME}...")
-    model = TextEmbedding(model_name=f"sentence-transformers/{MODEL_NAME}")
+    model = TextEmbedding(
+        model_name=f"sentence-transformers/{MODEL_NAME}", 
+        cache_dir=str(ROOT / "data" / "fastembed_cache")
+    )
     embeddings, nan_mask, embed_elapsed = _validate_embeddings(model, texts)
 
     # Filter out NaN rows
@@ -234,14 +237,20 @@ def build_indices():
 
     # Custom wrapper for FastEmbed to ensure compatibility with all Chroma versions
     class SuperLighterSearch:
-        def __init__(self, model_name):
-            self.model = TextEmbedding(model_name=model_name)
+        def __init__(self, model):
+            self.model = model
         def name(self):
             return "all-MiniLM-L6-v2"
         def __call__(self, input):
-            return [v.tolist() for v in self.model.embed(input)]
+            if isinstance(input, str):
+                input = [input]
+            return list(self.model.embed(list(input)))
+        def embed_query(self, input):
+            return self(input)
+        def embed_documents(self, input):
+            return self(input)
 
-    fastembed_ef = SuperLighterSearch(model_name=f"sentence-transformers/{MODEL_NAME}")
+    fastembed_ef = SuperLighterSearch(model=model)
 
     # ── 6e. Robust Collection Acquisition ──────────────────────────────────
     try:
@@ -348,12 +357,18 @@ def build_indices():
     with summary_path.open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
+    if failed_items:
+        print(f"\n[indexer] WARNING: {len(failed_items)} item(s) failed during upsert.")
+        print("[indexer] FAILURE SAMPLE (first 5 errors):")
+        for f in failed_items[:5]:
+            print(f"  - ID: {f[1]} | Error: {f[2]}")
+    
+    if upserted == 0 and total_chunks > 0:
+        print("[indexer] FATAL: Zero chunks were indexed. Failing pipeline.")
+        sys.exit(1)
+    
     print(f"[indexer] === Done ===  {upserted}/{total_chunks} chunks indexed in {run_elapsed:.1f}s  [{mode}]")
     print(f"[indexer] Run summary saved to {summary_path}")
-
-    if failed_items:
-        print(f"[indexer] WARNING  {len(failed_items)} item(s) failed -- review summary for details.")
-        sys.exit(1)
 
 
 if __name__ == "__main__":
