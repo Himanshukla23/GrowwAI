@@ -42,7 +42,8 @@ CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 # ── Constants ──────────────────────────────────────────────────────────────────
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 VECTOR_DIMENSION = 384
-COLLECTION_NAME = "groww_mf_chunks_v3"  # HARDCODED TO FIX CONFLICTS
+# Priority: .env > hardcoded default
+COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks_v4")
 print(f"[indexer] TARGET COLLECTION: {COLLECTION_NAME}")
 BATCH_SIZE = 50           # controlled batch size for throughput and retry safety
 MAX_RETRIES = 3           # per-batch retry count
@@ -231,13 +232,6 @@ def build_indices():
     print(f"LOG CHECK: TARGETING COLLECTION '{COLLECTION_NAME}'")
     print("###################################################")
 
-    # FORCE RESET for model migration (768 -> 384 dims)
-    try:
-        print(f"[indexer] Wiping old collection '{COLLECTION_NAME}' to fix conflict...")
-        client.delete_collection(name=COLLECTION_NAME)
-    except:
-        pass
-
     # Custom wrapper for FastEmbed to ensure compatibility with all Chroma versions
     class SuperLighterSearch:
         def __init__(self, model_name):
@@ -249,11 +243,27 @@ def build_indices():
 
     fastembed_ef = SuperLighterSearch(model_name=f"sentence-transformers/{MODEL_NAME}")
 
-    collection = client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        embedding_function=fastembed_ef,
-        metadata={"hnsw:space": "cosine"},
-    )
+    # ── 6e. Robust Collection Acquisition ──────────────────────────────────
+    try:
+        collection = client.get_or_create_collection(
+            name=COLLECTION_NAME,
+            embedding_function=fastembed_ef,
+            metadata={"hnsw:space": "cosine"},
+        )
+    except ValueError as ve:
+        # This catch handles the "embedding function already exists... and a new one is provided" conflict
+        print(f"[indexer] VALUE ERROR: {ve}")
+        print(f"[indexer] Conflict detected for '{COLLECTION_NAME}'. Wiping and recreating...")
+        try:
+            client.delete_collection(name=COLLECTION_NAME)
+            collection = client.get_or_create_collection(
+                name=COLLECTION_NAME,
+                embedding_function=fastembed_ef,
+                metadata={"hnsw:space": "cosine"},
+            )
+        except Exception as e:
+            print(f"[indexer] FATAL: Could not resolve collection conflict: {e}")
+            sys.exit(1)
     print(f"[indexer] Collection '{COLLECTION_NAME}' ready (existing count: {collection.count()})")
 
     # ── 6f. Upsert with retry (spec 10.1-D-2 & H) ─────────────────────────────
