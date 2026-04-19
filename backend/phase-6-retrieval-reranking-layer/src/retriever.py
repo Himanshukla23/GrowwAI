@@ -22,7 +22,7 @@ CHROMA_API_KEY = os.getenv("CHROMA_API_KEY", "").strip()
 CHROMA_TENANT = os.getenv("CHROMA_TENANT", "").strip()
 CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 
-MODEL_NAME = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
+MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks")
 
 class Retriever:

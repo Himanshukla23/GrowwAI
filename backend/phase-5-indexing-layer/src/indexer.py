@@ -39,8 +39,8 @@ CHROMA_TENANT = os.getenv("CHROMA_TENANT", "").strip()
 CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-MODEL_NAME = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
-VECTOR_DIMENSION = 768
+MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+VECTOR_DIMENSION = 384
 COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks")
 BATCH_SIZE = 50           # controlled batch size for throughput and retry safety
 MAX_RETRIES = 3           # per-batch retry count
