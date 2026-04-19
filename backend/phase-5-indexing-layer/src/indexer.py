@@ -331,12 +331,43 @@ def build_indices():
     final_count = collection.count()
     print(f"[indexer] Collection count after upsert: {final_count}")
     if final_count < len(ids):
-        print(f"[indexer] WARNING  Parity mismatch -- expected >= {len(ids)}, got {final_count}")
+        print(f"[indexer] INFO: Partial indexing detected -- Found {final_count} items in collection, expected {len(ids)}.")
 
-    # ── 6h. Run summary ──────────────────────────────────────────────────────
+    # ── 6h. Handle Partial Success Logic  (User Specification) ────────────────
+    success_rate = 0.0
+    if total_chunks > 0:
+        success_rate = upserted / total_chunks
+    
+    status = "SUCCESS"
+    exit_code = 0
+    
+    if success_rate < 0.8:
+        status = "FAILURE"
+        exit_code = 1
+    elif success_rate < 1.0:
+        status = "PARTIAL SUCCESS"
+        exit_code = 0
+
+    print(f"\n[indexer] Status: {status}")
+    print(f"[indexer] Indexed: {upserted}/{total_chunks}")
+    print(f"[indexer] Success Rate: {success_rate:.1%}")
+
+    if failed_items:
+        failed_path = RUN_LOG_DIR / "failed-items.json"
+        print(f"[indexer] Logging {len(failed_items)} failures to {failed_path}")
+        failed_payload = [
+            {"chunk_id": f[1], "error_reason": f[2]}
+            for f in failed_items
+        ]
+        with failed_path.open("w", encoding="utf-8") as f:
+            json.dump(failed_payload, f, indent=2)
+
+    # ── 6i. Run summary ──────────────────────────────────────────────────────
     run_elapsed = time.perf_counter() - run_start
     summary = {
         "run_timestamp":       run_ts,
+        "status":              status,
+        "success_rate":        round(success_rate, 4),
         "chroma_mode":         mode,
         "model_name":          MODEL_NAME,
         "vector_dimension":    VECTOR_DIMENSION,
@@ -344,31 +375,17 @@ def build_indices():
         "input_chunks":        total_chunks,
         "valid_chunks":        len(ids),
         "upserted_chunks":     upserted,
-        "failed_batches":      len(failed_items),
-        "failed_batch_detail": failed_items,
+        "failed_chunks":       len(failed_items),
         "final_collection_count": final_count,
-        "embedding_latency_s": round(embed_elapsed, 2),
         "total_latency_s":     round(run_elapsed, 2),
-        "metadata_warnings":   len(meta_warnings),
     }
 
-    RUN_LOG_DIR.mkdir(parents=True, exist_ok=True)
     summary_path = RUN_LOG_DIR / "latest-index-run.json"
     with summary_path.open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
-    if failed_items:
-        print(f"\n[indexer] WARNING: {len(failed_items)} item(s) failed during upsert.")
-        print("[indexer] FAILURE SAMPLE (first 5 errors):")
-        for f in failed_items[:5]:
-            print(f"  - ID: {f[1]} | Error: {f[2]}")
-    
-    if upserted == 0 and total_chunks > 0:
-        print("[indexer] FATAL: Zero chunks were indexed. Failing pipeline.")
-        sys.exit(1)
-    
-    print(f"[indexer] === Done ===  {upserted}/{total_chunks} chunks indexed in {run_elapsed:.1f}s  [{mode}]")
-    print(f"[indexer] Run summary saved to {summary_path}")
+    print(f"[indexer] === Done === Exit Code: {exit_code}")
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
