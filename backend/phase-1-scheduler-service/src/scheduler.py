@@ -68,9 +68,10 @@ def main() -> None:
             indexer_code = _run_indexer()
     
     overall_code = scraper_code or processor_code or indexer_code
-    status = "success" if overall_code == 0 else "failed"
+    status = "completed" if overall_code == 0 else "failed"
+    
     _write_scheduler_run(status=status, exit_code=overall_code)
-    print(f"[scheduler] refresh_completed status={status} exit_code={overall_code}")
+    print(f"[scheduler] Job {status} with overall exit_code={overall_code}")
     sys.exit(overall_code)
 
 
