@@ -1,0 +1,55 @@
+name: "Daily Data Ingestion Pipeline"
+
+on:
+  schedule:
+    # 09:15 AM IST = 03:45 AM UTC
+    - cron: '45 3 * * *'
+  
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch: 
+
+jobs:
+  ingest-and-index:
+    name: Scrape -> process -> index to Chroma Cloud 
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: 1. Run Scraper (Phase 2)
+        run: python backend/phase-2-scraping-service/src/scraper.py
+        
+      - name: 2. Run Chunker/Processor (Phase 4)
+        run: python backend/phase-4-document-processing-normalization/src/processor.py
+        
+      - name: 3. Run Indexer & Push to Chroma (Phase 5)
+        # Passed via GitHub repository secrets
+        env:
+          CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
+          CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
+          CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
+        run: python backend/phase-5-indexing-layer/src/indexer.py
+        
+      - name: Upload Logs & Artifacts
+        # Save the resulting pipeline metadata/summaries for debugging 
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingestion-run-data
+          path: |
+            data/raw/
+            data/processed/
+            data/index/
+          retention-days: 7

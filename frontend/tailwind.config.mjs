@@ -1,0 +1,73 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: "class",
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        "surface-container-lowest": "#ffffff",
+        "error": "#ba1a1a",
+        "surface": "#faf8ff",
+        "on-primary-fixed-variant": "#00513b",
+        "outline-variant": "#bacac1",
+        "tertiary-fixed-dim": "#bbcac1",
+        "on-secondary-fixed": "#002116",
+        "surface-container-high": "#e6e7f7",
+        "surface-container": "#ecedfd",
+        "tertiary-fixed": "#d7e6dd",
+        "on-secondary": "#ffffff",
+        "on-error": "#ffffff",
+        "secondary-container": "#9df4cf",
+        "on-error-container": "#93000a",
+        "on-tertiary-container": "#3d4b44",
+        "tertiary": "#53625a",
+        "primary-fixed-dim": "#2fe0aa",
+        "on-tertiary": "#ffffff",
+        "primary-container": "#00d09c",
+        "background": "#faf8ff",
+        "on-primary-container": "#00533c",
+        "secondary": "#006c4f",
+        "surface-tint": "#006c4f",
+        "on-tertiary-fixed-variant": "#3c4a43",
+        "secondary-fixed-dim": "#82d7b4",
+        "inverse-primary": "#2fe0aa",
+        "surface-dim": "#d8d9e9",
+        "surface-variant": "#e0e1f1",
+        "on-primary-fixed": "#002116",
+        "on-secondary-container": "#0f7255",
+        "on-surface": "#181b26",
+        "surface-container-highest": "#e0e1f1",
+        "surface-bright": "#faf8ff",
+        "inverse-surface": "#2d303c",
+        "inverse-on-surface": "#eff0ff",
+        "secondary-fixed": "#9df4cf",
+        "primary": "#006c4f",
+        "surface-container-low": "#f2f3ff",
+        "on-primary": "#ffffff",
+        "on-background": "#181b26",
+        "error-container": "#ffdad6",
+        "on-secondary-fixed-variant": "#00513b",
+        "tertiary-container": "#acbbb2",
+        "primary-fixed": "#59fdc5",
+        "on-surface-variant": "#3c4a43",
+        "on-tertiary-fixed": "#111e18",
+        "outline": "#6b7b72"
+      },
+      borderRadius: {
+        "DEFAULT": "1rem",
+        "lg": "2rem",
+        "xl": "3rem",
+        "full": "9999px"
+      },
+      fontFamily: {
+        "headline": ["Plus Jakarta Sans", "sans-serif"],
+        "body": ["Inter", "sans-serif"],
+        "label": ["Inter", "sans-serif"]
+      }
+    },
+  },
+  plugins: [],
+};

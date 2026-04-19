@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+datasets
+groq
+python-dotenv
+pydantic
+numpy
+scikit-learn
+aiofiles
+streamlit
+sentence-transformers
+torch
+chromadb

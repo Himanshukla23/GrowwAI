@@ -1,0 +1,36 @@
+name: Daily RAG Refresh
+
+on:
+  schedule:
+    # 09:15 IST = 03:45 UTC
+    - cron: "45 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-rag-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run scheduler-triggered refresh
+        run: python backend/phase-1-scheduler-service/src/scheduler.py --fail-on-errors
+
+      - name: Upload refresh artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rag-refresh-data
+          path: |
+            data/processed/latest
+            data/scheduler-runs
+          if-no-files-found: warn
