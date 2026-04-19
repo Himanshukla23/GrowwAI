@@ -181,6 +181,7 @@ def build_indices():
     run_start = time.perf_counter()
     run_ts = dt.datetime.now(dt.timezone.utc).isoformat()
     print(f"[indexer] === Indexing Layer (Phase 4.3) ===  {run_ts}")
+    print(f"[indexer] VERSION: v_CustomFastEmbed_Method_v1")
 
     # ── 6a. Load data ──────────────────────────────────────────────────────────
     chunks = _load_chunks()
