@@ -57,8 +57,8 @@ class Retriever:
             )
             print(f"[Retriever] Successfully connected to collection '{COLLECTION_NAME}'. Total indexed chunks: {self.collection.count()}")
         except Exception as e:
-            print(f"[Retriever] Failed to connect to collection '{COLLECTION_NAME}'. Make sure Phase 5 Indexer has run. Error: {e}")
-            sys.exit(1)
+            print(f"[Retriever] ERROR: Failed to connect to collection '{COLLECTION_NAME}'. Check your API keys and ensure the collection exists. Error: {e}")
+            self.collection = None # Allow startup to continue
 
     def _connect_chroma(self):
         """Connect to Cloud or Local ChromaDB based on .env credentials."""

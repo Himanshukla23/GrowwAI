@@ -145,16 +145,24 @@ async def startup():
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
+@app.get("/")
+async def root():
+    return {
+        "message": "Groww Assist Backend — Status: Operational",
+        "endpoints": ["/health", "/chat/{thread_id}/query", "/metrics"]
+    }
 
 @app.get("/health", response_model=HealthResponse)
 async def health():
     """Service health check."""
     _init_components()
+    col_name = _retriever.collection.name if (_retriever and _retriever.collection) else "Not Connected"
+    col_count = _retriever.collection.count() if (_retriever and _retriever.collection) else 0
     return HealthResponse(
-        status="healthy",
+        status="healthy" if _retriever.collection else "degraded",
         version="1.0.0",
-        chroma_collection=_retriever.collection.name,
-        indexed_chunks=_retriever.collection.count(),
+        chroma_collection=col_name,
+        indexed_chunks=col_count,
         timestamp=datetime.now(timezone.utc).isoformat(),
     )
 
