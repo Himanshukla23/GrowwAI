@@ -33,8 +33,9 @@ class Retriever:
         print(f"[Retriever] Initializing Custom FastEmbed: {MODEL_NAME}")
         class CustomFastEmbed:
             def __init__(self, model_name):
-                from fastembed import TextEmbedding
-                self.model = TextEmbedding(model_name=model_name, cache_dir=str(ROOT / "data" / "fastembed_cache"))
+                cache_path = ROOT / "data" / "fastembed_cache"
+                cache_path.mkdir(parents=True, exist_ok=True)
+                self.model = TextEmbedding(model_name=model_name, cache_dir=str(cache_path))
             def name(self):
                 return "all-MiniLM-L6-v2"
             def __call__(self, input):

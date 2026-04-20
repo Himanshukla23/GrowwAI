@@ -28,5 +28,5 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Start the application using uvicorn
-# Points to Phase 9: API and Multi-thread Chat Layer
-CMD ["sh", "-c", "uvicorn backend.phase-9-api-multi-thread-chat.src.app:app --host 0.0.0.0 --port ${PORT}"]
+# We move into the src directory to avoid importing hyphenated directory names as packages
+CMD ["sh", "-c", "cd backend/phase-9-api-multi-thread-chat/src && uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
