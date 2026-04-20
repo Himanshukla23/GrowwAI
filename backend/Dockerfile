@@ -16,7 +16,8 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire backend directory into the container
+# Copy the entry point script and the backend code
+COPY main.py .
 COPY backend/ ./backend/
 
 # Set environment variables
@@ -24,9 +25,5 @@ ENV PYTHONPATH=/app
 ENV PORT=8000
 ENV PYTHONUNBUFFERED=1
 
-# Expose the port the app runs on
-EXPOSE 8000
-
-# Start the application using uvicorn
-# We move into the src directory to avoid importing hyphenated directory names as packages
-CMD ["sh", "-c", "cd backend/phase-9-api-multi-thread-chat/src && uvicorn app:app --host 0.0.0.0 --port ${PORT}"]
+# Start the application
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
