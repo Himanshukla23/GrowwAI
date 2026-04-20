@@ -8,7 +8,7 @@ Adheres to rag-architecture.md Section 4.6:
 - Refusal and fallback templates (Section 11).
 """
 import re
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 
 # ── Refusal & Fallback Templates (§11) ────────────────────────────────────────
