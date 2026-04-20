@@ -1,7 +1,9 @@
 // Central API Configuration
 // This allows easy switching between local and production environments
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE = rawApiUrl.endsWith("/") ? rawApiUrl.slice(0, -1) : rawApiUrl;
+
 export const STREAMLIT_URL = process.env.NEXT_PUBLIC_STREAMLIT_APP_URL || "http://localhost:8501";
 
 export const ENDPOINTS = {
