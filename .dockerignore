@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+frontend
+data
+logs
+.env
+.env.*
+*.log
+__pycache__
+*.pyc
+.DS_Store
+.gemini
+venv
+docs
+legacy_reference

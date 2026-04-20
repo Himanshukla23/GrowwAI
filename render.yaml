@@ -1,24 +1,47 @@
 services:
+  # ---------------------------------------------------------------------------
+  # 1. Backend Service (FastAPI + RAG)
+  # ---------------------------------------------------------------------------
   - type: web
     name: groww-assist-backend
     env: docker
     dockerContext: .
     dockerfilePath: backend/Dockerfile
-    plan: free # Change to 'starter' if you need more RAM for embeddings
+    plan: free
     region: singapore # Closest to India for Groww data
     envVars:
       - key: PORT
         value: 8000
-      - fromGroup: groww-secrets # You can create a secret group on Render
       - key: PYTHONPATH
         value: /app
+      - key: EMBEDDING_MODEL
+        value: "all-MiniLM-L6-v2" # Lightweight for 512MB RAM
       - key: CHROMA_API_KEY
-        sync: false # Set this in the Render UI
+        sync: false # Set in Render UI
       - key: GROQ_API_KEY
-        sync: false # Set this in the Render UI
+        sync: false # Set in Render UI
+      - key: GEMINI_API_KEY
+        sync: false # Set in Render UI
       - key: CHROMA_TENANT
         sync: false
       - key: CHROMA_DATABASE
         sync: false
-      - key: EMBEDDING_MODEL
-        value: "BAAI/bge-base-en-v1.5"
+
+  # ---------------------------------------------------------------------------
+  # 2. Frontend Service (Next.js)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: groww-assist-frontend
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm run start"
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: groww-assist-backend
+          type: web
+          property: url
+      - key: NODE_VERSION
+        value: "20"

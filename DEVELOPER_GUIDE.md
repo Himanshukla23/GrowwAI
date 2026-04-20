@@ -58,3 +58,30 @@ Animations for the chat blocks are controlled using Tailwind classes and stagger
 | **Main Page UI** | `frontend/app/page.js` |
 | **Global Styles** | `frontend/app/globals.css` |
 | **API Config** | `frontend/lib/api-config.js` |
+
+---
+
+## 🚀 Deployment (Render)
+
+The codebase is pre-configured for deployment on [Render](https://render.com) using the `render.yaml` blueprint.
+
+### 1. Prerequisites
+- A GitHub repository containing this codebase.
+- A **ChromaDB Cloud** account (for persistent indexing).
+- API Keys for **Groq** and **Gemini**.
+
+### 2. Steps to Deploy
+1. **Log in to Render** and click **New > Blueprint**.
+2. **Connect your repository**.
+3. Render will auto-detect the `render.yaml`.
+4. **Configure Environment Variables** in the Render UI:
+   - `CHROMA_API_KEY`: Your ChromaDB Cloud API key.
+   - `GROQ_API_KEY`: Your Groq API key (for RAG).
+   - `GEMINI_API_KEY`: Your Google Gemini API key (for safety/reasoning).
+   - `CHROMA_TENANT` / `CHROMA_DATABASE`: Your Chroma instance details.
+5. **Deploy**. Render will build the Docker container for the backend and the Next.js app for the frontend.
+
+### 3. Optimization Notes
+- **Memory**: The backend is set to use `all-MiniLM-L6-v2` (`EMBEDDING_MODEL`) to stay within the 512MB RAM limit of Render's Free tier.
+- **Regions**: Both services are set to `singapore` for low-latency access from India.
+

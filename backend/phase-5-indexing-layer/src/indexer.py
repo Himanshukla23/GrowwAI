@@ -352,52 +352,22 @@ def build_indices():
     print(f"[indexer] Indexed: {upserted}/{total_chunks}")
     print(f"[indexer] Success Rate: {success_rate:.1%}")
 
-    # Ensure absolute path for CI reliability
-    log_dir = RUN_LOG_DIR.resolve()
+    # ── 6h. Final Console Report (Maximum Compatibility) ─────────────────────
+    print("\n" + "="*50)
+    print("INDEXING RUN SUMMARY")
+    print("="*50)
+    print(f"Status:       {status}")
+    print(f"Indexed:      {upserted} / {total_chunks}")
+    print(f"Success Rate: {success_rate:.1%}")
     
-    # ── 6h. Save Failed Items (Safe Logging Implementation) ───────────────────
     if failed_items:
-        try:
-            log_dir.mkdir(parents=True, exist_ok=True)
-            failed_path = log_dir / "failed-items.json"
-            print(f"[indexer] Logging {len(failed_items)} failures to {failed_path}")
-            failed_payload = [
-                {"chunk_id": f[1], "error_reason": f[2]}
-                for f in failed_items
-            ]
-            with failed_path.open("w", encoding="utf-8") as f:
-                json.dump(failed_payload, f, indent=2)
-        except Exception as e:
-            print(f"[indexer] WARNING: Could not save failed-items.json: {e}")
-
-    # ── 6i. Run summary (Safe Logging Implementation) ─────────────────────────
-    run_elapsed = time.perf_counter() - run_start
-    summary = {
-        "run_timestamp":       run_ts,
-        "status":              status,
-        "success_rate":        round(success_rate, 4),
-        "chroma_mode":         mode,
-        "model_name":          MODEL_NAME,
-        "vector_dimension":    VECTOR_DIMENSION,
-        "collection_name":     COLLECTION_NAME,
-        "input_chunks":        total_chunks,
-        "valid_chunks":        len(ids),
-        "upserted_chunks":     upserted,
-        "failed_chunks":       len(failed_items),
-        "final_collection_count": final_count,
-        "total_latency_s":     round(run_elapsed, 2),
-    }
-
-    try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-        summary_path = log_dir / "latest-index-run.json"
-        with summary_path.open("w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-        print(f"[indexer] Summary saved to {summary_path}")
-    except Exception as e:
-        print(f"[indexer] WARNING: Could not save latest-index-run.json: {e}")
-
-    print(f"[indexer] === Done === Exit Code: {exit_code}")
+        print(f"\nWARNING: {len(failed_items)} items failed.")
+        print("First 5 errors:")
+        for f in failed_items[:5]:
+            print(f"  - ID: {f[1]} | Error: {f[2]}")
+    
+    print("="*50)
+    print(f"[indexer] Completed with Exit Code: {exit_code}")
     sys.exit(exit_code)
 
 
