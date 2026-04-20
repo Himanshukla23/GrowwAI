@@ -141,7 +141,10 @@ def _init_components():
 
 @app.on_event("startup")
 async def startup():
-    _init_components()
+    try:
+        _init_components()
+    except Exception as e:
+        print(f"[App] WARNING: Startup initialization failed: {e}")
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────

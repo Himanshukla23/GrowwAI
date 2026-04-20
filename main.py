@@ -1,36 +1,60 @@
 import sys
 import pathlib
-import uvicorn
+import os
 
-# Resolve root path
+# 1. Resolve Pathing
 ROOT = pathlib.Path(__file__).resolve().parent
+print(f"[Main] Root directory: {ROOT}")
 
-# Add all phase directories to sys.path to handle hyphenated names correctly
-phases = [
-    "phase-6-retrieval-reranking-layer",
-    "phase-7-grounded-answer-generation",
-    "phase-8-policy-safety-guardrails",
-    "phase-9-api-multi-thread-chat"
-]
+# 2. Add phase directories to path
+# We use absolute paths to ensure Render's environment finds them
+phase_6 = ROOT / "backend" / "phase-6-retrieval-reranking-layer" / "src"
+phase_7 = ROOT / "backend" / "phase-7-grounded-answer-generation" / "src"
+phase_8 = ROOT / "backend" / "phase-8-policy-safety-guardrails" / "src"
+phase_9 = ROOT / "backend" / "phase-9-api-multi-thread-chat" / "src"
 
-for phase in phases:
-    src_path = ROOT / "backend" / phase / "src"
-    if src_path.exists():
-        sys.path.insert(0, str(src_path))
-        print(f"[Main] Added to path: {src_path}")
+for p in [phase_6, phase_7, phase_8, phase_9]:
+    if p.exists():
+        sys.path.insert(0, str(p))
+        print(f"[Main] Path Added: {p}")
+    else:
+        print(f"[Main] WARNING: Path not found: {p}")
 
-# Now import the app from the phase-9 src directory
+# 3. Create FastAPI Instance
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Groww Assist AI — Final Gateway")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 4. Attempt to import the real logic
 try:
-    from app import app
-    print("[Main] Successfully loaded Groww Assist API")
-except ImportError as e:
-    print(f"[Main] Critical Import Error: {e}")
-    # Fallback to a dummy app so the server at least starts and we can see logs
-    from fastapi import FastAPI
-    app = FastAPI()
+    # We import the routes/logic from app.py but we define our own app instance here for stability
+    import app as backend_logic
+    # Re-mount/Import routes if they exist in a router, or just use the backend_logic.app
+    # To keep it simple and stable, we'll proxy to the real app
+    from app import app as real_app
+    app = real_app
+    print("[Main] Successfully connected and loaded Phase 9 Logic")
+except Exception as e:
+    print(f"[Main] CRITICAL ERROR during logic load: {e}")
+    # Minimal routes so the server stays UP for debugging
     @app.get("/")
-    def error():
-        return {"error": "Failed to load main application. Check logs.", "details": str(e)}
+    def fail_root():
+        return {"status": "error", "message": "Failed to load backend logic. Check Render Logs.", "error": str(e)}
+
+    @app.get("/health")
+    def fail_health():
+        return {"status": "error", "error": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
