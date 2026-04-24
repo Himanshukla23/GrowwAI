@@ -142,14 +142,17 @@ export default function AssistantPanel({
             </p>
             <div className="flex flex-col gap-2 mt-3 w-full">
               {[
-                "Compare HDFC Mid Cap and SBI Gold",
-                "What is the NAV of SBI Contra?",
-                "Show me ICICI Prudential Large Cap",
+                "What is the expense ratio of Nippon India Small Cap?",
+                "How has Quant Small Cap performed recently?",
+                "What are the top holdings of SBI Bluechip Fund?",
               ].map((suggestion, idx) => (
                 <button
                   key={idx}
+                  disabled={isInitializing}
                   onClick={(e) => handleSend(e, suggestion)}
-                  className="px-4 py-2.5 text-xs text-left bg-surface-container-high/40 hover:bg-surface-container-high/80 rounded-xl text-on-surface font-medium transition-colors border border-outline-variant/10"
+                  className={`px-4 py-2.5 text-xs text-left bg-surface-container-high/40 rounded-xl text-on-surface font-medium transition-colors border border-outline-variant/10 ${
+                    isInitializing ? "opacity-50 cursor-not-allowed" : "hover:bg-surface-container-high/80"
+                  }`}
                 >
                   "{suggestion}"
                 </button>
@@ -273,8 +276,10 @@ export default function AssistantPanel({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            className="w-full bg-surface-container-low border-none rounded-xl py-3 pl-10 pr-12 text-xs focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-on-surface-variant/50 outline-none"
-            placeholder={isInitializing ? "Initializing AI…" : "Ask about any fund…"}
+            className={`w-full bg-surface-container-low border-none rounded-xl py-3 pl-10 pr-12 text-xs focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-on-surface-variant/50 outline-none ${
+              isInitializing ? "animate-pulse" : ""
+            }`}
+            placeholder={isInitializing ? "AI engine waking up..." : "Ask about any fund…"}
             type="text"
           />
           <button
@@ -282,9 +287,13 @@ export default function AssistantPanel({
             disabled={!query.trim() || isInitializing || isLoading}
             className="absolute inset-y-1.5 right-1.5 px-3 bg-primary text-white rounded-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-40 disabled:hover:scale-100"
           >
-            <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-              send
-            </span>
+            {isInitializing ? (
+               <span className="material-symbols-outlined text-base animate-spin">sync</span>
+            ) : (
+              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
+                send
+              </span>
+            )}
           </button>
         </form>
         <p className="mt-2 text-center text-[10px] text-on-surface-variant/60 italic">

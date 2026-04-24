@@ -22,29 +22,46 @@ export default function Home() {
   // Initialize Thread & Health
   useEffect(() => {
     let retryCount = 0;
-    const maxRetries = 5;
+    const maxRetries = 20; // Increased for Render cold starts (up to 60s+)
 
     async function init() {
       try {
+        console.log(`[Init] Attempting to connect to backend (Attempt ${retryCount + 1})...`);
         const res = await fetch(ENDPOINTS.CREATE_THREAD, { method: "POST" });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         setThreadId(data.thread_id);
         setIsInitializing(false);
+        console.log("[Init] Backend connected and thread created.");
         
         // Also fetch health for sidebar
         fetch(ENDPOINTS.HEALTH).then(r => r.ok && r.json().then(setHealthData));
       } catch (err) {
+        console.warn(`[Init] Backend connection failed: ${err.message}`);
         if (retryCount < maxRetries) {
           retryCount++;
-          setTimeout(init, 2000);
+          // Exponential backoff or steady interval? 3s is good for cold start.
+          setTimeout(init, 3000);
         } else {
+          console.error("[Init] Max retries reached. Backend might be down.");
           setIsInitializing(false);
         }
       }
     }
     init();
   }, []);
+
+  // Keep-alive ping (to prevent Render sleep which happens after 15m)
+  useEffect(() => {
+    if (isInitializing || !threadId) return;
+
+    const interval = setInterval(() => {
+      console.log("[KeepAlive] Pinging backend to stay awake...");
+      fetch(ENDPOINTS.HEALTH).catch(() => {});
+    }, 600000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, [isInitializing, threadId]);
 
   const handleSend = async (e, textOverride = null) => {
     e?.preventDefault();
