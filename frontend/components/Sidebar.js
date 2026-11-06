@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ENDPOINTS } from "@/lib/api-config";
 
-export default function Sidebar({ onNewAnalysis, healthData, messageCount }) {
+export default function Sidebar({ onNewAnalysis, healthData, messageCount, viewMode, setViewMode }) {
   const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
@@ -41,26 +41,44 @@ export default function Sidebar({ onNewAnalysis, healthData, messageCount }) {
       </button>
 
       <nav className="flex-1 space-y-1">
-        <a className="flex items-center gap-3 px-4 py-3 bg-secondary-container/30 text-on-secondary-container rounded-xl font-headline font-semibold transition-all relative overflow-hidden" href="#">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>
+        <button
+          onClick={() => setViewMode && setViewMode("dashboard")}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-headline font-semibold transition-all relative overflow-hidden text-left ${
+            viewMode === "dashboard"
+              ? "bg-secondary-container/30 text-on-secondary-container shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container-low"
+          }`}
+        >
+          {viewMode === "dashboard" && <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>}
           <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>dashboard</span>
           <span>Workspace</span>
-        </a>
-        <a className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all group" href="#">
+        </button>
+        <button
+          onClick={() => setViewMode && setViewMode("dashboard")}
+          className="w-full flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all group text-left"
+        >
           <span className="material-symbols-outlined group-hover:text-primary">trending_up</span>
           <span>Funds</span>
-        </a>
-        <a className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all group" href="#">
-          <span className="material-symbols-outlined group-hover:text-primary">compare_arrows</span>
+        </button>
+        <button
+          onClick={() => setViewMode && setViewMode("comparison")}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-headline font-semibold transition-all relative overflow-hidden text-left ${
+            viewMode === "comparison"
+              ? "bg-secondary-container/30 text-on-secondary-container shadow-sm"
+              : "text-on-surface-variant hover:bg-surface-container-low"
+          }`}
+        >
+          {viewMode === "comparison" && <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>}
+          <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>compare_arrows</span>
           <span>Comparisons</span>
-        </a>
-        <a className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all group justify-between" href="#">
-          <div className="flex gap-3">
-            <span className="material-symbols-outlined group-hover:text-primary">forum</span>
+        </button>
+        <div className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all justify-between">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined">forum</span>
             <span>AI History</span>
           </div>
           {messageCount > 0 && <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-md">{messageCount}</span>}
-        </a>
+        </div>
       </nav>
 
       <div className="mt-auto space-y-4 pt-6">
@@ -78,7 +96,7 @@ export default function Sidebar({ onNewAnalysis, healthData, messageCount }) {
               <span className="font-mono font-bold text-on-surface">{healthData?.indexed_chunks || "-"}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span class="text-on-surface-variant">Version</span>
+              <span className="text-on-surface-variant">Version</span>
               <span className="font-mono font-bold text-on-surface">{healthData?.version || "-"}</span>
             </div>
           </div>

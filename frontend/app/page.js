@@ -44,6 +44,7 @@ export default function Home() {
           setTimeout(init, 3000);
         } else {
           console.error("[Init] Max retries reached. Backend might be down.");
+          setThreadId("thread-" + Date.now());
           setIsInitializing(false);
         }
       }
@@ -66,7 +67,12 @@ export default function Home() {
   const handleSend = async (e, textOverride = null) => {
     e?.preventDefault();
     const finalQuery = textOverride || query;
-    if (!finalQuery.trim() || !threadId || isLoading) return;
+    if (!finalQuery.trim() || isLoading) return;
+
+    let activeThread = threadId || ("thread-" + Date.now());
+    if (!threadId) {
+      setThreadId(activeThread);
+    }
 
     const userMessage = { role: "user", content: finalQuery, timestamp: new Date().toISOString() };
     setMessages(prev => [...prev, userMessage]);
@@ -78,7 +84,7 @@ export default function Home() {
 
     const executeQuery = async () => {
       try {
-        const res = await fetch(ENDPOINTS.QUERY(threadId), {
+        const res = await fetch(ENDPOINTS.QUERY(activeThread), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: finalQuery })
@@ -134,7 +140,13 @@ export default function Home() {
 
   return (
     <div className="bg-background text-on-surface font-body antialiased min-h-screen flex">
-      <Sidebar onNewAnalysis={handleNewAnalysis} healthData={healthData} messageCount={messages.length} />
+      <Sidebar
+        onNewAnalysis={handleNewAnalysis}
+        healthData={healthData}
+        messageCount={messages.length}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
 
       <main className="flex-1 md:ml-[280px] xl:mr-[384px] flex flex-col min-h-screen overflow-hidden">
         <Navbar title={viewMode === "dashboard" ? "Market Overview" : "Comparisons"} />
@@ -146,7 +158,10 @@ export default function Home() {
               onCompareClick={() => setViewMode("comparison")}
             />
           ) : (
-            <ComparisonWorkspace comparisonData={comparisonData} />
+            <ComparisonWorkspace
+              comparisonData={comparisonData}
+              onSelectQuery={(q) => handleSend(null, q)}
+            />
           )}
         </div>
       </main>

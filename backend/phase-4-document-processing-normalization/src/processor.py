@@ -27,8 +27,19 @@ def _load_documents() -> Dict:
 
 
 def _split_into_chunks(text: str, target_size: int, overlap: int) -> List[str]:
-    # Simple semantic splitting by line/paragraph
-    paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+    # 1. Clean paragraphs and pre-split any paragraph that exceeds target_size
+    raw_paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
+    paragraphs = []
+    for p in raw_paragraphs:
+        words = p.split()
+        if len(words) <= target_size:
+            paragraphs.append(p)
+        else:
+            step = target_size - overlap if target_size > overlap else target_size
+            for idx in range(0, len(words), step):
+                slice_words = words[idx : idx + target_size]
+                if slice_words:
+                    paragraphs.append(" ".join(slice_words))
     
     chunks = []
     current_chunk_paragraphs = []
@@ -63,7 +74,22 @@ def _split_into_chunks(text: str, target_size: int, overlap: int) -> List[str]:
     if current_chunk_paragraphs:
         chunks.append("\n".join(current_chunk_paragraphs))
         
-    return chunks
+    # 2. Hard byte-size safeguard: ChromaDB Cloud limit is 16,384 bytes
+    safe_chunks = []
+    max_bytes = 12000
+    for ch in chunks:
+        ch_bytes = ch.encode("utf-8")
+        if len(ch_bytes) <= max_bytes:
+            safe_chunks.append(ch)
+        else:
+            words = ch.split()
+            step = 300
+            for idx in range(0, len(words), 250):
+                sub_ch = " ".join(words[idx : idx + step])
+                if sub_ch.strip():
+                    safe_chunks.append(sub_ch)
+                    
+    return safe_chunks
 
 
 def process_documents() -> None:
@@ -82,16 +108,25 @@ def process_documents() -> None:
         raw_chunks = _split_into_chunks(text, CHUNK_TARGET_WORDS, CHUNK_OVERLAP_WORDS)
         
         # 2. Enrichment & Normalization
+        scheme_prefix = ""
+        if doc.get("scheme_name"):
+            scheme_prefix = f"[Scheme: {doc.get('scheme_name')} | AMC: {doc.get('amc_name', '')}]\n"
+
         for i, chunk_text in enumerate(raw_chunks):
+            # Prepend contextual header if not already present
+            final_text = chunk_text
+            if scheme_prefix and not chunk_text.startswith("===") and not chunk_text.startswith("[Scheme:"):
+                final_text = scheme_prefix + chunk_text
+
             # Calculate token count (approx)
-            word_count = len(chunk_text.split())
+            word_count = len(final_text.split())
             token_est = int(word_count / 0.75)
             
             chunk_payload = {
                 "chunk_id": str(uuid.uuid4()),
                 "document_id": doc.get("document_id"),
                 "chunk_index": i,
-                "chunk_text": chunk_text,
+                "chunk_text": final_text,
                 "token_count_est": token_est,
                 "pipeline_version": PIPELINE_VERSION,
                 "embedding_model_version": EMBEDDING_MODEL,

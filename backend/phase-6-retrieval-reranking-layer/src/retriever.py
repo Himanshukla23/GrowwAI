@@ -57,17 +57,29 @@ class Retriever:
             )
             print(f"[Retriever] Successfully connected to collection '{COLLECTION_NAME}'. Total indexed chunks: {self.collection.count()}")
         except Exception as e:
-            print(f"[Retriever] ERROR: Failed to connect to collection '{COLLECTION_NAME}'. Check your API keys and ensure the collection exists. Error: {e}")
-            self.collection = None # Allow startup to continue
+            print(f"[Retriever] Custom EF bind failed ({e}), getting collection directly...")
+            try:
+                self.collection = self.client.get_collection(name=COLLECTION_NAME)
+                print(f"[Retriever] Successfully connected to collection '{COLLECTION_NAME}'. Total indexed chunks: {self.collection.count()}")
+            except Exception as e2:
+                print(f"[Retriever] ERROR: Failed to connect to collection '{COLLECTION_NAME}': {e2}")
+                self.collection = None
 
     def _connect_chroma(self):
         """Connect to Cloud or Local ChromaDB based on .env credentials."""
         if CHROMA_API_KEY:
-            print("[Retriever] Using ChromaDB Cloud connection...")
-            kwargs = {"api_key": CHROMA_API_KEY}
-            if CHROMA_TENANT: kwargs["tenant"] = CHROMA_TENANT
-            if CHROMA_DATABASE: kwargs["database"] = CHROMA_DATABASE
-            return chromadb.CloudClient(**kwargs)
+            try:
+                print("[Retriever] Using ChromaDB Cloud connection...")
+                kwargs = {"api_key": CHROMA_API_KEY}
+                if CHROMA_TENANT: kwargs["tenant"] = CHROMA_TENANT
+                if CHROMA_DATABASE: kwargs["database"] = CHROMA_DATABASE
+                return chromadb.CloudClient(**kwargs)
+            except Exception as e:
+                print(f"[Retriever] Cloud connection failed: {e}. Checking local ChromaDB...")
+                if CHROMA_LOCAL_DIR.exists():
+                    print(f"[Retriever] Falling back to local ChromaDB at {CHROMA_LOCAL_DIR}")
+                    return chromadb.PersistentClient(path=str(CHROMA_LOCAL_DIR))
+                raise
         else:
             print(f"[Retriever] Using local ChromaDB at: {CHROMA_LOCAL_DIR}")
             if not CHROMA_LOCAL_DIR.exists():
@@ -84,10 +96,22 @@ class Retriever:
         :param exact_phrase: Substring that MUST appear in the document body.
         :return: List of evidence dictionaries containing text, metadata, and distance.
         """
-        kwargs = {
-            "query_texts": [query],
-            "n_results": top_k
-        }
+        if self.collection is None:
+            print("[Retriever] WARNING: Collection is not available. Returning empty evidence.")
+            return []
+
+        try:
+            emb = self.embedding_function([query])[0]
+            emb = [float(x) for x in emb]
+            kwargs = {
+                "query_embeddings": [emb],
+                "n_results": top_k
+            }
+        except Exception as e:
+            kwargs = {
+                "query_texts": [query],
+                "n_results": top_k
+            }
         
         # 1. Apply Metadata Filters
         if filters:

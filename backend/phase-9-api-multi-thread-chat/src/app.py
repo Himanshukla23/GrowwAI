@@ -115,7 +115,17 @@ _threads: Dict[str, Dict] = {}
 
 def _get_thread(thread_id: str) -> Dict:
     if thread_id not in _threads:
-        raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found.")
+        now = datetime.now(timezone.utc).isoformat()
+        _threads[thread_id] = {
+            "created_at": now,
+            "context": {
+                "amc_hint": None,
+                "scheme_hint": None,
+                "prior_entities": [],
+                "latest_citation": None,
+            },
+            "messages": [],
+        }
     return _threads[thread_id]
 
 
@@ -130,13 +140,16 @@ _observability: Optional[ObservabilityStore] = None
 def _init_components():
     global _retriever, _pipeline, _generator, _guardrails, _observability
     if _retriever is None:
-        print("[API] Initializing RAG components…")
-        _retriever = Retriever()
-        _pipeline = RetrievalPipeline(_retriever)
-        _generator = AnswerGenerator()
-        _guardrails = PolicyGuardrails()
-        _observability = ObservabilityStore()
-        print("[API] All components ready.")
+        try:
+            print("[API] Initializing RAG components…")
+            _retriever = Retriever()
+            _pipeline = RetrievalPipeline(_retriever)
+            _generator = AnswerGenerator()
+            _guardrails = PolicyGuardrails()
+            _observability = ObservabilityStore()
+            print("[API] All components ready.")
+        except Exception as e:
+            print(f"[API] Error initializing components: {e}")
 
 
 @app.on_event("startup")
@@ -161,8 +174,9 @@ async def health():
     _init_components()
     col_name = _retriever.collection.name if (_retriever and _retriever.collection) else "Not Connected"
     col_count = _retriever.collection.count() if (_retriever and _retriever.collection) else 0
+    has_col = bool(_retriever and _retriever.collection)
     return HealthResponse(
-        status="healthy" if _retriever.collection else "degraded",
+        status="healthy" if has_col else "degraded",
         version="1.0.0",
         chroma_collection=col_name,
         indexed_chunks=col_count,
@@ -215,6 +229,16 @@ async def chat_query(thread_id: str, body: QueryRequest):
     now = datetime.now(timezone.utc).isoformat()
     query = body.query.strip()
     req_log = RequestLog()
+
+    if _pipeline is None or _guardrails is None or _generator is None:
+        return QueryResponse(
+            thread_id=thread_id,
+            query=query,
+            answer="Groww Assist AI engine is currently initializing or degraded. Please verify database and API connectivity.",
+            intent="system_error",
+            chunks_used=0,
+            timestamp=now,
+        )
 
     # ── 1. Pre-generation guardrails ──────────────────────────────────────
     t0 = _time.time()

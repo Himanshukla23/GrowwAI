@@ -25,6 +25,7 @@ yarn-error.log*
 # Data and Logs
 data/
 logs/
+scratch/
 .gemini/
 
 # OS files

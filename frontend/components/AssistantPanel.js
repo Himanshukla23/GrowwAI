@@ -142,16 +142,17 @@ export default function AssistantPanel({
             </p>
             <div className="flex flex-col gap-2 mt-3 w-full">
               {[
-                "What is the expense ratio of Nippon India Small Cap?",
-                "How has Quant Small Cap performed recently?",
-                "What are the top holdings of SBI Bluechip Fund?",
+                "Compare SBI Contra Fund and Nippon India Large Cap",
+                "Compare HDFC Mid Cap Fund and SBI Small Cap Fund",
+                "What is the expense ratio and NAV of SBI Contra Fund?",
+                "What is the NAV of ICICI Prudential Large Cap Fund?",
               ].map((suggestion, idx) => (
                 <button
                   key={idx}
                   disabled={isInitializing}
                   onClick={(e) => handleSend(e, suggestion)}
-                  className={`px-4 py-2.5 text-xs text-left bg-surface-container-high/40 rounded-xl text-on-surface font-medium transition-colors border border-outline-variant/10 ${
-                    isInitializing ? "opacity-50 cursor-not-allowed" : "hover:bg-surface-container-high/80"
+                  className={`px-4 py-2 text-xs text-left bg-surface-container-high/40 rounded-xl text-on-surface font-medium transition-colors border border-outline-variant/10 ${
+                    isInitializing ? "opacity-50 cursor-not-allowed" : "hover:bg-surface-container-high/80 hover:border-primary/30"
                   }`}
                 >
                   "{suggestion}"
@@ -183,7 +184,12 @@ export default function AssistantPanel({
           }
 
           // ── Assistant bubble ─────────────────────────────────────────────
-          const isError = msg.error || msg.violations?.length > 0;
+          const isError =
+            msg.error ||
+            msg.violations?.length > 0 ||
+            (typeof msg.content === "string" &&
+              (msg.content.includes("internal generation error") ||
+                msg.content.includes("error occurred")));
 
           // Split into logical blocks by paragraph / double-newline
           const rawBlocks = msg.content

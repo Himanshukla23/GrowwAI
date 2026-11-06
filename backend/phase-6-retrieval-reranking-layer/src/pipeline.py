@@ -18,7 +18,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 load_dotenv(ROOT / ".env")
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+MODELS_TO_TRY = list(dict.fromkeys([GROQ_MODEL, "openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"]))
 
 class RetrievalPipeline:
     def __init__(self, retriever_instance):
@@ -47,25 +48,28 @@ class RetrievalPipeline:
             return "factual" # Default fallback
             
         # 2. LLM-Based Classification
-        try:
-            prompt = f"""Classify the intent of this user query for a Mutual Fund AI assistant.
+        prompt = f"""Classify the intent of this user query for a Mutual Fund AI assistant.
 Options: 'factual', 'advisory', 'comparison', 'out-of-scope'.
 'comparison' is for queries asking to compare two or more funds.
 Query: "{query}"
 Reply exactly with one of the options, nothing else."""
 
-            response = self.client.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0
-            )
-            intent = response.choices[0].message.content.strip().lower()
-            if intent in ['factual', 'advisory', 'comparison', 'out-of-scope']:
-                return intent
-            return "factual"
-        except Exception as e:
-            print(f"[Pipeline] LLM Intent Classification failed: {e}")
-            return "factual"
+        for model_name in MODELS_TO_TRY:
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0
+                )
+                intent = response.choices[0].message.content.strip().lower()
+                if intent in ['factual', 'advisory', 'comparison', 'out-of-scope']:
+                    return intent
+                return "factual"
+            except Exception as e:
+                print(f"[Pipeline] LLM Intent Classification failed with {model_name}: {e}")
+                continue
+
+        return "factual"
 
 
     def rewrite_query(self, query: str) -> str:
@@ -76,8 +80,7 @@ Reply exactly with one of the options, nothing else."""
             expanded = expanded.replace("sbi", "SBI Mutual Fund schemes").replace("hdfc", "HDFC Mutual Fund schemes")
             return expanded
             
-        try:
-            prompt = f"""You are a query expansion engine for a Mutual Fund RAG system.
+        prompt = f"""You are a query expansion engine for a Mutual Fund RAG system.
 Rewrite this user query to:
 1. Fix any typos (e.g., 'Comapre' -> 'Compare', 'SPI' -> 'SIP').
 2. Expand acronyms: ER -> Expense Ratio, NAV -> Net Asset Value, MF -> Mutual Fund.
@@ -87,16 +90,20 @@ Rewrite this user query to:
 User Query: "{query}"
 
 Reply ONLY with the rewritten query string. No explanations."""
-            
-            response = self.client.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0
-            )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"[Pipeline] LLM Query Rewriting failed: {e}")
-            return query
+        
+        for model_name in MODELS_TO_TRY:
+            try:
+                response = self.client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0
+                )
+                return response.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"[Pipeline] LLM Query Rewriting failed with {model_name}: {e}")
+                continue
+
+        return query
 
     def rerank(self, query: str, raw_results: List[Dict]) -> List[Dict]:
         """
@@ -122,20 +129,114 @@ Reply ONLY with the rewritten query string. No explanations."""
         reranked = sorted(raw_results, key=lambda x: x['rerank_score'], reverse=True)
         return reranked
 
-    def pack_evidence(self, reranked_chunks: List[Dict], max_chunks: int = 3) -> str:
-        """Formats the top N chunks into an injected context string."""
-        evidence = []
-        for i, chunk in enumerate(reranked_chunks[:max_chunks]):
-            source = chunk['metadata'].get('source_url', 'Unknown URL')
-            amc = chunk['metadata'].get('amc_name', 'Unknown AMC')
-            # Clean newlines for cleaner prompt injection
-            text = chunk['text'].replace('\n', ' ').strip()
-            
-            block = f"[Evidence {i+1} | Source: {amc} | URL: {source}]\n{text}"
-            evidence.append(block)
-            
-        if not evidence:
+    def pack_evidence(self, reranked_chunks: List[Dict], max_chunks: int = 8, is_comparison: bool = False, query: str = "") -> str:
+        """Formats the top N chunks into an injected context string, balancing schemes and prioritizing query matches."""
+        if not reranked_chunks:
             return "No relevant mutual fund evidence found in the database."
+
+        if is_comparison:
+            by_scheme: Dict[str, List[Dict]] = {}
+            for chunk in reranked_chunks:
+                scheme = chunk.get('metadata', {}).get('scheme_name') or chunk.get('metadata', {}).get('source_url') or 'other'
+                by_scheme.setdefault(scheme, []).append(chunk)
+
+            # Sort chunks within each scheme so OFFICIAL SCHEME FACTS comes first
+            for scheme in by_scheme:
+                by_scheme[scheme].sort(
+                    key=lambda c: (
+                        0 if "OFFICIAL SCHEME FACTS" in c.get('text', '') else 1
+                    )
+                )
+
+            # Score each scheme by relevance to query terms, excluding generic filler words
+            q_lower = query.lower()
+            generic_stopwords = {"fund", "funds", "mutual", "india", "direct", "growth", "plan", "the", "and", "scheme", "schemes", "compare", "between", "versus", "with"}
+            q_words = set(q_lower.replace(",", " ").replace("vs", " ").split()) - generic_stopwords
+
+            def scheme_relevance(s_name: str) -> int:
+                s_lower = s_name.lower()
+                score = 0
+                for w in q_words:
+                    if len(w) >= 3 and w in s_lower:
+                        score += 3 if w in ["contra", "gold", "psu", "large", "mid", "small", "multi", "flexi", "focused"] else 1
+                return score
+
+            # Check if query mentions two distinct AMCs
+            amcs_in_query = [amc for amc in ["sbi", "hdfc", "icici", "nippon"] if amc in q_lower]
+            primary_schemes = []
+            if len(amcs_in_query) >= 2:
+                for amc in amcs_in_query[:2]:
+                    matching_for_amc = [
+                        s for s in by_scheme.keys()
+                        if amc in s.lower() or any(amc in (c.get('metadata', {}).get('amc_name', '').lower()) for c in by_scheme[s])
+                    ]
+                    if matching_for_amc:
+                        best = max(matching_for_amc, key=scheme_relevance)
+                        primary_schemes.append(best)
+
+            # Fallback if fewer than 2 schemes picked
+            sorted_schemes = sorted(by_scheme.keys(), key=scheme_relevance, reverse=True)
+            for s in sorted_schemes:
+                if s not in primary_schemes:
+                    primary_schemes.append(s)
+                if len(primary_schemes) >= 2:
+                    break
+
+            # Guarantee that OFFICIAL SCHEME FACTS chunk is present for each primary scheme
+            for scheme in primary_schemes:
+                has_facts = any("OFFICIAL SCHEME FACTS" in c.get('text', '') for c in by_scheme.get(scheme, []))
+                if not has_facts and self.retriever and getattr(self.retriever, 'collection', None):
+                    try:
+                        fact_res = self.retriever.collection.get(
+                            where={"$and": [{"scheme_name": {"$eq": scheme}}, {"chunk_index": {"$eq": 0}}]}
+                        )
+                        if fact_res and fact_res.get('documents'):
+                            fact_chunk = {
+                                "chunk_id": fact_res['ids'][0],
+                                "text": fact_res['documents'][0],
+                                "metadata": fact_res['metadatas'][0],
+                                "score": 1.0
+                            }
+                            by_scheme.setdefault(scheme, []).insert(0, fact_chunk)
+                    except Exception as e:
+                        print(f"[Pipeline] Fact lookup error for {scheme}: {e}")
+
+            selected = []
+            
+            # First round: take top facts from the primary schemes
+            for scheme in primary_schemes:
+                if by_scheme[scheme]:
+                    selected.append(by_scheme[scheme].pop(0))
+
+            # Second round: take additional details for the primary schemes
+            while len(selected) < max_chunks:
+                added = False
+                for scheme in primary_schemes:
+                    if by_scheme[scheme] and len(selected) < max_chunks:
+                        selected.append(by_scheme[scheme].pop(0))
+                        added = True
+                if not added:
+                    # If primary exhausted, backfill from other schemes
+                    for scheme in sorted_schemes[2:]:
+                        if by_scheme[scheme] and len(selected) < max_chunks:
+                            selected.append(by_scheme[scheme].pop(0))
+                            added = True
+                    if not added:
+                        break
+            chunks_to_pack = selected
+        else:
+            chunks_to_pack = reranked_chunks[:max_chunks]
+
+        evidence = []
+        for i, chunk in enumerate(chunks_to_pack):
+            source = chunk.get('metadata', {}).get('source_url', 'Unknown URL')
+            amc = chunk.get('metadata', {}).get('amc_name', 'Unknown AMC')
+            scheme = chunk.get('metadata', {}).get('scheme_name', '')
+            text = chunk.get('text', '').replace('\n', ' ').strip()
+            
+            scheme_header = f" | Scheme: {scheme}" if scheme else ""
+            block = f"[Evidence {i+1} | Source: {amc}{scheme_header} | URL: {source}]\n{text}"
+            evidence.append(block)
             
         return "\n\n".join(evidence)
 
@@ -172,7 +273,7 @@ Reply ONLY with the rewritten query string. No explanations."""
         reranked_results = self.rerank(rewritten_query, raw_results)
         
         # 5. Evidence Packing
-        context_string = self.pack_evidence(reranked_results, max_chunks=5)
+        context_string = self.pack_evidence(reranked_results, max_chunks=8, is_comparison=(intent == "comparison"), query=query)
         print(f"[Pipeline] > Pipeline complete. Packed evidence string length: {len(context_string)} chars.")
         
         return {

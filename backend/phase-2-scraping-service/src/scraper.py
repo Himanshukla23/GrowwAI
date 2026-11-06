@@ -43,20 +43,105 @@ def _fetch_url(url: str, timeout_sec: int = 30) -> Tuple[int, str]:
         return status, body
 
 
+def _extract_structured_facts(html: str) -> str:
+    m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html)
+    if not m:
+        return ""
+    try:
+        nd = json.loads(m.group(1))
+        props = nd.get("props", {}).get("pageProps", {})
+    except Exception:
+        return ""
+
+    facts = []
+    # Mutual fund scheme page
+    if "mfServerSideData" in props and isinstance(props["mfServerSideData"], dict):
+        mf = props["mfServerSideData"]
+        s_name = mf.get("scheme_name") or mf.get("fund_name") or ""
+        fund_house = mf.get("fund_house") or mf.get("amc") or ""
+        category = mf.get("category") or ""
+        sub_cat = mf.get("sub_category") or ""
+        bench = mf.get("benchmark_name") or mf.get("benchmark") or ""
+        nav = mf.get("nav")
+        nav_date = mf.get("nav_date") or ""
+        er = mf.get("expense_ratio")
+        aum = mf.get("aum")
+        risk = mf.get("risk") or mf.get("nfo_risk") or ""
+        min_sip = mf.get("min_sip_investment")
+        min_lump = mf.get("min_investment_amount")
+        exit_load = mf.get("exit_load") or ""
+        fund_mgr = mf.get("fund_manager") or ""
+        desc = mf.get("description") or ""
+
+        sr = mf.get("simple_return") or {}
+        r1y = sr.get("return1y")
+        r3y = sr.get("return3y")
+        r5y = sr.get("return5y")
+
+        facts.extend([
+            f"=== OFFICIAL SCHEME FACTS: {s_name} ===",
+            f"Scheme Name: {s_name}",
+            f"Fund House (AMC): {fund_house}",
+            f"Category: {category} ({sub_cat})",
+            f"Benchmark: {bench}",
+            f"Latest Net Asset Value (NAV): ₹{nav:.4f}" if isinstance(nav, (int, float)) else f"Latest Net Asset Value (NAV): ₹{nav}",
+            f"NAV Date: {nav_date}",
+            f"Expense Ratio: {er}%" if er is not None else "Expense Ratio: N/A",
+            f"AUM (Fund Size): ₹{aum:,.2f} Cr" if isinstance(aum, (int, float)) else f"AUM (Fund Size): ₹{aum} Cr",
+            f"Risk Level: {risk}",
+            f"Minimum SIP Investment: ₹{min_sip}" if min_sip is not None else "Minimum SIP Investment: N/A",
+            f"Minimum Lumpsum Investment: ₹{min_lump}" if min_lump is not None else "Minimum Lumpsum Investment: N/A",
+            f"1-Year Return: {r1y:.2f}%" if isinstance(r1y, (int, float)) else f"1-Year Return: {r1y}%",
+            f"3-Year Return: {r3y:.2f}%" if isinstance(r3y, (int, float)) else f"3-Year Return: {r3y}%",
+            f"5-Year Return: {r5y:.2f}%" if isinstance(r5y, (int, float)) else f"5-Year Return: {r5y}%",
+            f"Exit Load: {exit_load}",
+            f"Fund Manager: {fund_mgr}",
+            f"Investment Objective: {desc}",
+            "=== END OF SCHEME FACTS ==="
+        ])
+
+    # AMC main page
+    if "amcMainPageData" in props and isinstance(props["amcMainPageData"], list):
+        amc_list = props["amcMainPageData"]
+        if len(amc_list) > 1 and isinstance(amc_list[1], dict) and "key_information" in amc_list[1]:
+            kinfo = amc_list[1]["key_information"] or {}
+            fhouse = kinfo.get("fund_house") or kinfo.get("asset_management_company") or ""
+            tot_aum = kinfo.get("total_aum")
+            sponsors = ", ".join(kinfo.get("sponsor_name") or [])
+            ceo = kinfo.get("ceo") or ""
+            cio = kinfo.get("cio") or ""
+            setup = kinfo.get("amc_setup_date") or ""
+            trustee = kinfo.get("trustee_organisation") or ""
+
+            facts.extend([
+                f"=== OFFICIAL AMC FACTS: {fhouse} ===",
+                f"AMC Name: {fhouse}",
+                f"Total AMC AUM: ₹{float(tot_aum):,.2f} Cr" if tot_aum else "Total AMC AUM: N/A",
+                f"Sponsors: {sponsors}",
+                f"CEO: {ceo}",
+                f"CIO: {cio}",
+                f"Setup Date: {setup}",
+                f"Trustee Organisation: {trustee}",
+                "=== END OF AMC FACTS ==="
+            ])
+
+    return "\n".join(facts)
+
+
 def _clean_html_to_text(html: str) -> str:
     # 1. Remove script and style blocks
-    no_script = re.sub(r"<script.*?>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
-    no_style = re.sub(r"<style.*?>.*?</style>", " ", no_script, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<script.*?>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    cleaned = re.sub(r"<style.*?>.*?</style>", " ", cleaned, flags=re.IGNORECASE | re.DOTALL)
     
     # 2. Add structural markers for block elements to preserve line breaks
     # This helps Phase 4 identify section boundaries
     blocks = ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "br", "header", "footer", "section", "article"]
     for tag in blocks:
-        html = re.sub(f"<{tag}[^>]*>", "\n", html, flags=re.IGNORECASE)
-        html = re.sub(f"</{tag}>", "\n", html, flags=re.IGNORECASE)
+        cleaned = re.sub(f"<{tag}[^>]*>", "\n", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(f"</{tag}>", "\n", cleaned, flags=re.IGNORECASE)
 
     # 3. Strip remaining tags
-    no_tags = re.sub(r"<[^>]+>", " ", html)
+    no_tags = re.sub(r"<[^>]+>", " ", cleaned)
     
     # 4. Normalize whitespace but preserve single newlines
     unescaped = unescape(no_tags)
@@ -106,7 +191,9 @@ def run_scrape(fail_on_errors: bool) -> int:
 
         try:
             status_code, html = _fetch_url(url)
-            text = _clean_html_to_text(html)
+            facts = _extract_structured_facts(html)
+            clean_body = _clean_html_to_text(html)
+            text = (facts + "\n\n" + clean_body).strip() if facts else clean_body
             fetched_at = dt.datetime.now(dt.timezone.utc).isoformat()
 
             raw_payload = {

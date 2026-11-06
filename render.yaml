@@ -16,8 +16,12 @@ services:
         value: /app
       - key: EMBEDDING_MODEL
         value: "all-MiniLM-L6-v2" # Lightweight for 512MB RAM
+      - key: CHROMA_COLLECTION
+        value: "groww_mf_chunks_v5"
       - key: CHROMA_API_KEY
         sync: false # Set in Render UI
+      - key: GROQ_MODEL
+        value: "openai/gpt-oss-120b"
       - key: GROQ_API_KEY
         sync: false # Set in Render UI
       - key: GEMINI_API_KEY
