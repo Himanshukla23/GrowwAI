@@ -1,14 +1,12 @@
-# Lightweight AI dependencies for 512MB RAM
+# Lean, production-optimized RAG dependencies (< 150MB total, sub-30s install)
 fastembed
 fastapi
-uvicorn
-pandas
-datasets
+uvicorn[standard]
 groq
 python-dotenv
 pydantic
 numpy
-scikit-learn
 aiofiles
 chromadb
-
+httpx
+requests

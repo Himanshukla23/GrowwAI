@@ -34,7 +34,8 @@ class Retriever:
         class CustomFastEmbed:
             def __init__(self, model_name):
                 from fastembed import TextEmbedding
-                cache_path = ROOT / "data" / "fastembed_cache"
+                cache_env = os.getenv("FASTEMBED_CACHE_PATH")
+                cache_path = pathlib.Path(cache_env) if cache_env else (ROOT / "data" / "fastembed_cache")
                 cache_path.mkdir(parents=True, exist_ok=True)
                 self.model = TextEmbedding(model_name=model_name, cache_dir=str(cache_path))
             def name(self):

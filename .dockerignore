@@ -4,6 +4,7 @@ node_modules
 frontend
 data
 logs
+scratch
 .env
 .env.*
 *.log
@@ -14,3 +15,5 @@ __pycache__
 venv
 docs
 legacy_reference
+tests
+*.md
