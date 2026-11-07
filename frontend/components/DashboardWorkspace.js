@@ -209,47 +209,67 @@ function StatTile({ label, value, sub, mono = false }) {
 export default function DashboardWorkspace({ fundData, onCompareClick, onSelectFund }) {
   const [chartRange, setChartRange] = useState("1Y");
 
-  // Verified Groww funds showcase
+  // Verified Groww funds showcase (Live Nov 2026 Scraped Data)
   const TOP_GROWW_FUNDS = [
     {
       name: "SBI Contra Direct Plan Growth",
       category: "Equity • Value Oriented",
       nav: "₹414.54",
       cagr3Y: "11.80%",
-      er: "0.86%",
-      aum: "₹45,067 Cr",
-      risk: "Moderately High",
+      er: "0.91%",
+      aum: "₹45,068 Cr",
+      risk: "Very High",
       query: "What is the expense ratio and NAV of SBI Contra Fund?",
     },
     {
       name: "Nippon India Large Cap Direct Growth",
       category: "Equity • Large Cap",
-      nav: "₹101.36",
-      cagr3Y: "12.56%",
+      nav: "₹102.86",
+      cagr3Y: "12.79%",
       er: "0.85%",
       aum: "₹51,296 Cr",
-      risk: "Moderately High",
+      risk: "Very High",
       query: "What is the expense ratio and NAV of Nippon India Large Cap Fund?",
     },
     {
       name: "HDFC Mid Cap Fund Direct Growth",
       category: "Equity • Mid Cap",
-      nav: "₹196.20",
-      cagr3Y: "24.10%",
-      er: "0.78%",
-      aum: "₹68,140 Cr",
+      nav: "₹226.05",
+      cagr3Y: "16.38%",
+      er: "0.74%",
+      aum: "₹1,01,856 Cr",
       risk: "Very High",
       query: "What are the details of HDFC Mid Cap Fund?",
     },
     {
       name: "ICICI Prudential Large Cap Direct Growth",
       category: "Equity • Large Cap",
-      nav: "₹96.15",
-      cagr3Y: "13.40%",
-      er: "0.70%",
-      aum: "₹48,920 Cr",
+      nav: "₹122.59",
+      cagr3Y: "12.54%",
+      er: "1.00%",
+      aum: "₹76,352 Cr",
       risk: "Very High",
       query: "What is the NAV of ICICI Prudential Large Cap Fund?",
+    },
+    {
+      name: "SBI Gold Fund Direct Growth",
+      category: "Commodities • Gold",
+      nav: "₹42.88",
+      cagr3Y: "30.88%",
+      er: "0.25%",
+      aum: "₹17,423 Cr",
+      risk: "Very High",
+      query: "What is the expense ratio and NAV of SBI Gold Fund?",
+    },
+    {
+      name: "SBI Small Cap Fund Direct Growth",
+      category: "Equity • Small Cap",
+      nav: "₹205.74",
+      cagr3Y: "11.20%",
+      er: "0.80%",
+      aum: "₹41,059 Cr",
+      risk: "Very High",
+      query: "What is the performance of SBI Small Cap Fund?",
     },
   ];
 
@@ -503,13 +523,13 @@ export default function DashboardWorkspace({ fundData, onCompareClick, onSelectF
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatTile
           label="Expense Ratio"
-          value={fundData.expenseRatio || "0.86%"}
+          value={fundData.expenseRatio || "0.91%"}
           sub="Direct Plan"
           mono
         />
         <StatTile
           label="Fund Size (AUM)"
-          value={fundData.aum || "₹45,067 Cr"}
+          value={fundData.aum || "₹45,068 Cr"}
           sub="Total Assets"
           mono
         />
@@ -533,9 +553,9 @@ export default function DashboardWorkspace({ fundData, onCompareClick, onSelectF
           <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider block mb-2">
             SEBI Riskometer
           </span>
-          <RiskMeter risk={fundData.risk || "Moderately High"} />
+          <RiskMeter risk={fundData.risk || "Very High"} />
           <p className="text-[11px] text-on-surface-variant/70 text-center mt-3">
-            Principal investment will be at Moderately High risk according to SEBI mutual fund guidelines.
+            Principal investment will be at Very High risk according to SEBI mutual fund guidelines.
           </p>
         </div>
 

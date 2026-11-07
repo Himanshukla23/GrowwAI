@@ -50,7 +50,10 @@ class Retriever:
                 return self(input)
         
         self.embedding_function = CustomFastEmbed(model_name=f"sentence-transformers/{MODEL_NAME}")
-        
+        self._connect_collection()
+
+    def _connect_collection(self):
+        """Connects or reconnects to the target collection."""
         try:
             self.collection = self.client.get_collection(
                 name=COLLECTION_NAME,
@@ -127,7 +130,18 @@ class Retriever:
             kwargs["where_document"] = {"$contains": exact_phrase}
             
         # 3. Query Execution
-        results = self.collection.query(**kwargs)
+        try:
+            results = self.collection.query(**kwargs)
+        except Exception as e:
+            if "soft deleted" in str(e).lower() or "not found" in str(e).lower() or "collection" in str(e).lower():
+                print(f"[Retriever] Collection query error ({e}), re-connecting collection and retrying...")
+                self._connect_collection()
+                if self.collection:
+                    results = self.collection.query(**kwargs)
+                else:
+                    raise e
+            else:
+                raise e
         
         # 4. Format Results
         evidence = []

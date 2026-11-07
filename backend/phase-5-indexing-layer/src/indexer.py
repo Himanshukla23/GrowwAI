@@ -156,9 +156,14 @@ def _validate_metadata_presence(chunks: list) -> list:
 
 def _validate_embeddings(model, texts: List[str]):
     """Computes embeddings using fastembed and checks for validity."""
-    print(f"[indexer] Computing embeddings for {len(texts)} chunks...")
+    print(f"[indexer] Computing embeddings for {len(texts)} chunks in micro-batches...")
     t0 = time.perf_counter()
-    embeddings = np.array(list(model.embed(texts)))
+    embeddings_list = []
+    for i in range(0, len(texts), 16):
+        batch = texts[i:i+16]
+        batch_emb = list(model.embed(batch, batch_size=16))
+        embeddings_list.extend(batch_emb)
+    embeddings = np.array(embeddings_list)
     elapsed = time.perf_counter() - t0
     print(f"[indexer] Embeddings computed in {elapsed:.2f}s ({len(texts)/elapsed:.1f} chunks/s)")
 

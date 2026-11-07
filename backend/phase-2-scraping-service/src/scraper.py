@@ -66,17 +66,36 @@ def _extract_structured_facts(html: str) -> str:
         nav_date = mf.get("nav_date") or ""
         er = mf.get("expense_ratio")
         aum = mf.get("aum")
-        risk = mf.get("risk") or mf.get("nfo_risk") or ""
         min_sip = mf.get("min_sip_investment")
         min_lump = mf.get("min_investment_amount")
         exit_load = mf.get("exit_load") or ""
         fund_mgr = mf.get("fund_manager") or ""
         desc = mf.get("description") or ""
 
+        # Extract official annualized CAGR returns from stats (FUND_RETURN)
+        r1y, r3y, r5y = None, None, None
+        for s in mf.get("stats", []):
+            if isinstance(s, dict) and s.get("type") == "FUND_RETURN":
+                r1y = s.get("stat_1y")
+                r3y = s.get("stat_3y")
+                r5y = s.get("stat_5y")
+                break
+
+        # Fallback to return_stats & extract current SEBI Riskometer rating
+        ret_stats = mf.get("return_stats", [])
+        current_risk = None
+        if ret_stats and isinstance(ret_stats, list) and len(ret_stats) > 0:
+            rs0 = ret_stats[0]
+            if r1y is None: r1y = rs0.get("return1y")
+            if r3y is None: r3y = rs0.get("return3y")
+            if r5y is None: r5y = rs0.get("return5y")
+            current_risk = rs0.get("risk")
+
+        if not current_risk:
+            current_risk = mf.get("nfo_risk") or mf.get("risk") or "N/A"
+
         sr = mf.get("simple_return") or {}
-        r1y = sr.get("return1y")
-        r3y = sr.get("return3y")
-        r5y = sr.get("return5y")
+        cum_3y = sr.get("return3y")
 
         facts.extend([
             f"=== OFFICIAL SCHEME FACTS: {s_name} ===",
@@ -88,12 +107,13 @@ def _extract_structured_facts(html: str) -> str:
             f"NAV Date: {nav_date}",
             f"Expense Ratio: {er}%" if er is not None else "Expense Ratio: N/A",
             f"AUM (Fund Size): ₹{aum:,.2f} Cr" if isinstance(aum, (int, float)) else f"AUM (Fund Size): ₹{aum} Cr",
-            f"Risk Level: {risk}",
+            f"Risk Level: {current_risk}",
             f"Minimum SIP Investment: ₹{min_sip}" if min_sip is not None else "Minimum SIP Investment: N/A",
             f"Minimum Lumpsum Investment: ₹{min_lump}" if min_lump is not None else "Minimum Lumpsum Investment: N/A",
-            f"1-Year Return: {r1y:.2f}%" if isinstance(r1y, (int, float)) else f"1-Year Return: {r1y}%",
-            f"3-Year Return: {r3y:.2f}%" if isinstance(r3y, (int, float)) else f"3-Year Return: {r3y}%",
-            f"5-Year Return: {r5y:.2f}%" if isinstance(r5y, (int, float)) else f"5-Year Return: {r5y}%",
+            f"1-Year Annualised Return (CAGR): {r1y:.2f}%" if isinstance(r1y, (int, float)) else f"1-Year Annualised Return (CAGR): {r1y}%",
+            f"3-Year Annualised Return (CAGR): {r3y:.2f}%" if isinstance(r3y, (int, float)) else f"3-Year Annualised Return (CAGR): {r3y}%",
+            f"5-Year Annualised Return (CAGR): {r5y:.2f}%" if isinstance(r5y, (int, float)) else f"5-Year Annualised Return (CAGR): {r5y}%",
+            f"3-Year Cumulative Return: {cum_3y:.2f}%" if isinstance(cum_3y, (int, float)) else f"3-Year Cumulative Return: {cum_3y}%",
             f"Exit Load: {exit_load}",
             f"Fund Manager: {fund_mgr}",
             f"Investment Objective: {desc}",
@@ -103,8 +123,13 @@ def _extract_structured_facts(html: str) -> str:
     # AMC main page
     if "amcMainPageData" in props and isinstance(props["amcMainPageData"], list):
         amc_list = props["amcMainPageData"]
-        if len(amc_list) > 1 and isinstance(amc_list[1], dict) and "key_information" in amc_list[1]:
-            kinfo = amc_list[1]["key_information"] or {}
+        kinfo = {}
+        for entry in amc_list:
+            if isinstance(entry, dict) and "key_information" in entry:
+                kinfo = entry.get("key_information", {}) or {}
+                break
+
+        if kinfo:
             fhouse = kinfo.get("fund_house") or kinfo.get("asset_management_company") or ""
             tot_aum = kinfo.get("total_aum")
             sponsors = ", ".join(kinfo.get("sponsor_name") or [])

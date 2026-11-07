@@ -76,7 +76,7 @@ export default function ComparisonWorkspace({ comparisonData, onSelectQuery }) {
       query: "Compare SBI Contra Fund and Nippon India Large Cap",
       icon: "balance",
       navA: "₹414.54",
-      navB: "₹101.36",
+      navB: "₹102.86",
       desc: "Contrarian value equity versus established bluechip market leaders.",
     },
     {
@@ -86,8 +86,8 @@ export default function ComparisonWorkspace({ comparisonData, onSelectQuery }) {
       tag: "High Alpha",
       query: "Compare HDFC Mid Cap Fund and SBI Small Cap Fund",
       icon: "trending_up",
-      navA: "₹196.20",
-      navB: "₹172.40",
+      navA: "₹226.05",
+      navB: "₹205.74",
       desc: "Aggressive mid-market expansion vs high-growth small-cap opportunities.",
     },
     {
@@ -97,8 +97,8 @@ export default function ComparisonWorkspace({ comparisonData, onSelectQuery }) {
       tag: "Low Cost",
       query: "Compare ICICI Prudential Large Cap Fund and Nippon India Large Cap",
       icon: "pie_chart",
-      navA: "₹96.15",
-      navB: "₹101.36",
+      navA: "₹122.59",
+      navB: "₹102.86",
       desc: "Direct low-expense indexation and capital preservation comparison.",
     },
   ];
@@ -238,8 +238,8 @@ export default function ComparisonWorkspace({ comparisonData, onSelectQuery }) {
     },
     {
       label: "Risk Rating",
-      valA: fundA.risk || "Moderately High",
-      valB: fundB.risk || "Moderately High",
+      valA: fundA.risk || "Very High",
+      valB: fundB.risk || "Very High",
     },
     {
       label: "Minimum SIP Investment",
