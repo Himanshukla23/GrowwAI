@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 // ── "See more / See less" expandable text block ───────────────────────────────
-const COLLAPSE_THRESHOLD = 220; // chars before truncating
+const COLLAPSE_THRESHOLD = 260; // chars before truncating
 
 function ExpandableBlock({ children, className, animStyle }) {
   const [expanded, setExpanded] = useState(false);
@@ -14,22 +14,19 @@ function ExpandableBlock({ children, className, animStyle }) {
   const display = !isLong || expanded ? text : text.slice(0, COLLAPSE_THRESHOLD) + "…";
 
   return (
-    <div
-      className={className}
-      style={animStyle}
-    >
+    <div className={className} style={animStyle}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           strong: ({ node, ...props }) => (
             <span
-              className="inline-flex items-center px-1 py-0.5 rounded bg-primary/10 text-primary font-bold text-[11px]"
+              className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-bold text-[11px] mx-0.5"
               {...props}
             />
           ),
-          p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+          p: ({ children }) => <p className="mb-1.5 last:mb-0 leading-relaxed">{children}</p>,
           ul: ({ children }) => (
-            <ul className="list-disc list-inside space-y-0.5 mt-1">{children}</ul>
+            <ul className="list-disc list-inside space-y-1 mt-1 text-xs">{children}</ul>
           ),
           li: ({ children }) => (
             <li className="text-xs text-on-surface leading-snug">{children}</li>
@@ -42,53 +39,29 @@ function ExpandableBlock({ children, className, animStyle }) {
       {isLong && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-2 flex items-center gap-1 text-[11px] font-bold text-primary hover:underline focus:outline-none"
+          className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline focus:outline-none cursor-pointer"
         >
           <span className="material-symbols-outlined text-[14px]">
             {expanded ? "expand_less" : "expand_more"}
           </span>
-          {expanded ? "See less" : "See more"}
+          {expanded ? "Show less" : "Read full analysis"}
         </button>
       )}
     </div>
   );
 }
 
-// ── Financial figure highlighter ──────────────────────────────────────────────
-function HighlightedText({ children }) {
-  if (typeof children !== "string") return children;
-  const parts = children.split(
-    /(\d+(?:\.\d+)?%|₹\s*\d+(?:\.\d+)?(?:,\d+)*|Rs\.\s*\d+(?:\.\d+)?(?:,\d+)*)/g
-  );
-  return (
-    <>
-      {parts.map((part, i) => {
-        const isMatch =
-          /(\d+(?:\.\d+)?%|₹\s*\d+(?:\.\d+)?|Rs\.\s*\d+)/.test(part);
-        return isMatch ? (
-          <span
-            key={i}
-            className="font-extrabold text-primary px-1 py-0.5 bg-primary/5 rounded border border-primary/10 mx-0.5 text-[11px]"
-          >
-            {part}
-          </span>
-        ) : (
-          part
-        );
-      })}
-    </>
-  );
-}
-
 export default function AssistantPanel({
-  messages,
-  isLoading,
-  query,
+  messages = [],
+  isLoading = false,
+  query = "",
   setQuery,
   handleSend,
-  isInitializing,
+  isInitializing = false,
+  onClose,
 }) {
   const bottomRef = useRef(null);
+  const [copiedIndex, setCopiedIndex] = useState(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,61 +74,121 @@ export default function AssistantPanel({
     }
   };
 
+  const handleCopy = (text, idx) => {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedIndex(idx);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    }
+  };
+
+  const PROMPT_SUGGESTIONS = [
+    {
+      text: "Compare SBI Contra Fund and Nippon India Large Cap",
+      icon: "compare_arrows",
+      tag: "Comparison",
+    },
+    {
+      text: "Compare HDFC Mid Cap Fund and SBI Small Cap Fund",
+      icon: "show_chart",
+      tag: "Growth",
+    },
+    {
+      text: "What is the expense ratio and NAV of SBI Contra Fund?",
+      icon: "percent",
+      tag: "Fact Check",
+    },
+    {
+      text: "What is the NAV of ICICI Prudential Large Cap Fund?",
+      icon: "account_balance",
+      tag: "NAV",
+    },
+  ];
+
   return (
-    <section className="fixed right-0 top-0 bottom-0 w-[384px] bg-white shadow-2xl flex flex-col z-50">
-      {/* ── Header ── */}
-      <header className="px-5 py-4 border-b border-surface-container-low flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <span
-            className="material-symbols-outlined text-primary text-2xl"
-            style={{ fontVariationSettings: "'FILL' 1" }}
+    <section className="h-full w-full bg-surface-container-lowest border-l border-outline-variant/15 flex flex-col shadow-xl">
+      {/* ── Google Gemini-style Header ── */}
+      <header className="px-5 py-4 border-b border-outline-variant/15 flex items-center justify-between bg-surface-container-lowest/80 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center text-white shadow-xs">
+            <span
+              className="material-symbols-outlined text-[18px]"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              auto_awesome
+            </span>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-on-surface font-headline font-bold text-sm leading-none tracking-tight">
+                Groww Assist AI
+              </h2>
+              <span className="w-2 h-2 rounded-full bg-primary" />
+            </div>
+            <p className="text-[11px] text-on-surface-variant font-medium mt-0.5">
+              Grounded Gemini Engine
+            </p>
+          </div>
+        </div>
+
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close assistant"
+            className="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors"
           >
-            smart_toy
-          </span>
-        </div>
-        <div>
-          <h2 className="text-on-surface font-headline font-bold text-base leading-tight">
-            Groww Assist
-          </h2>
-          <p className="text-on-surface-variant text-xs font-medium">AI Financial Guide</p>
-        </div>
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
+        )}
       </header>
 
-      {/* ── Messages ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 custom-scrollbar bg-surface/30">
-        {/* Empty state */}
+      {/* ── Message Area ── */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 custom-scrollbar bg-surface-container-low/30">
+        {/* Empty state: Google Gemini style prompt cards */}
         {messages.length === 0 && !isLoading && (
-          <div className="h-full flex flex-col items-center justify-center text-center px-4 space-y-3">
-            <div className="w-14 h-14 rounded-full bg-surface-container flex items-center justify-center">
+          <div className="h-full flex flex-col items-center justify-center text-center px-2 py-6 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-xs">
               <span
-                className="material-symbols-outlined text-2xl text-primary"
+                className="material-symbols-outlined text-2xl"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 psychology
               </span>
             </div>
-            <h3 className="font-headline font-semibold text-base text-on-surface">
-              How can I help you?
-            </h3>
-            <p className="text-xs text-on-surface-variant max-w-[220px] leading-relaxed">
-              Ask me about market trends, compare mutual funds, or check fund details.
-            </p>
-            <div className="flex flex-col gap-2 mt-3 w-full">
-              {[
-                "Compare SBI Contra Fund and Nippon India Large Cap",
-                "Compare HDFC Mid Cap Fund and SBI Small Cap Fund",
-                "What is the expense ratio and NAV of SBI Contra Fund?",
-                "What is the NAV of ICICI Prudential Large Cap Fund?",
-              ].map((suggestion, idx) => (
+            <div>
+              <h3 className="font-headline font-bold text-sm text-on-surface">
+                What would you like to analyze today?
+              </h3>
+              <p className="text-xs text-on-surface-variant/80 max-w-[260px] mx-auto mt-1 leading-relaxed">
+                Compare mutual funds side-by-side, verify live NAVs, or audit expense ratios.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full pt-2">
+              {PROMPT_SUGGESTIONS.map((item, idx) => (
                 <button
                   key={idx}
                   disabled={isInitializing}
-                  onClick={(e) => handleSend(e, suggestion)}
-                  className={`px-4 py-2 text-xs text-left bg-surface-container-high/40 rounded-xl text-on-surface font-medium transition-colors border border-outline-variant/10 ${
-                    isInitializing ? "opacity-50 cursor-not-allowed" : "hover:bg-surface-container-high/80 hover:border-primary/30"
+                  onClick={(e) => handleSend(e, item.text)}
+                  className={`group p-3 text-left bg-surface-container-lowest rounded-xl border border-outline-variant/15 hover:border-primary/40 hover:shadow-xs transition-all flex items-start gap-2.5 ${
+                    isInitializing
+                      ? "opacity-50 cursor-not-allowed"
+                      : "cursor-pointer"
                   }`}
                 >
-                  "{suggestion}"
+                  <div className="w-6 h-6 rounded-lg bg-surface-container text-on-surface-variant group-hover:bg-primary/10 group-hover:text-primary flex items-center justify-center shrink-0 transition-colors mt-0.5">
+                    <span className="material-symbols-outlined text-[14px]">
+                      {item.icon}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors leading-snug">
+                      {item.text}
+                    </p>
+                    <span className="text-[10px] text-on-surface-variant/70 font-medium">
+                      {item.tag}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -164,14 +197,13 @@ export default function AssistantPanel({
 
         {/* Message list */}
         {messages.map((msg, index) => {
-          // ── User bubble ──────────────────────────────────────────────────
           if (msg.role === "user") {
             return (
-              <div key={index} className="flex flex-col items-end">
-                <div className="bg-primary-container text-on-primary-container font-medium px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] text-xs shadow-sm whitespace-pre-wrap leading-relaxed">
+              <div key={index} className="flex flex-col items-end animate-slide-up">
+                <div className="bg-gradient-to-r from-primary to-primary-container text-white font-medium px-4 py-2.5 rounded-2xl rounded-tr-xs max-w-[88%] text-xs shadow-xs leading-relaxed">
                   {msg.content}
                 </div>
-                <span className="text-[10px] text-on-surface-variant mt-1 font-medium">
+                <span className="text-[10px] text-on-surface-variant/60 mt-1 font-medium pr-1">
                   {msg.timestamp
                     ? new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -183,7 +215,6 @@ export default function AssistantPanel({
             );
           }
 
-          // ── Assistant bubble ─────────────────────────────────────────────
           const isError =
             msg.error ||
             msg.violations?.length > 0 ||
@@ -191,7 +222,6 @@ export default function AssistantPanel({
               (msg.content.includes("internal generation error") ||
                 msg.content.includes("error occurred")));
 
-          // Split into logical blocks by paragraph / double-newline
           const rawBlocks = msg.content
             ? msg.content
                 .split(/\n{2,}/)
@@ -200,21 +230,38 @@ export default function AssistantPanel({
             : [msg.content || ""];
 
           return (
-            <div key={index} className="flex flex-col items-start">
+            <div key={index} className="flex flex-col items-start animate-fade-in group/msg">
+              <div className="flex items-center gap-1.5 mb-1 ml-0.5">
+                <div className="w-4 h-4 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    auto_awesome
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-on-surface">Groww AI</span>
+                <span className="text-[10px] text-on-surface-variant/60">
+                  {msg.timestamp
+                    ? new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : ""}
+                </span>
+              </div>
+
               {isError ? (
-                <div className="bg-error-container text-on-error-container px-4 py-3 rounded-2xl rounded-tl-sm text-xs leading-relaxed shadow-sm max-w-[90%]">
+                <div className="bg-error-container text-on-error-container px-4 py-3 rounded-2xl rounded-tl-xs text-xs leading-relaxed shadow-xs max-w-[92%] border border-error/20">
                   {msg.content}
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 w-full max-w-[92%]">
+                <div className="flex flex-col gap-2 w-full max-w-[94%]">
                   {rawBlocks.map((block, i) => (
                     <ExpandableBlock
                       key={i}
-                      className={`bg-surface-variant text-on-surface px-4 py-3 ${
-                        i === 0 ? "rounded-2xl rounded-tl-sm" : "rounded-2xl"
-                      } text-xs leading-relaxed shadow-sm animate-slide-up`}
+                      className={`bg-surface-container-lowest text-on-surface px-4 py-3 border border-outline-variant/15 ${
+                        i === 0 ? "rounded-2xl rounded-tl-xs" : "rounded-2xl"
+                      } text-xs leading-relaxed shadow-xs`}
                       animStyle={{
-                        animationDelay: `${i * 100}ms`,
+                        animationDelay: `${i * 80}ms`,
                         animationFillMode: "both",
                       }}
                     >
@@ -224,57 +271,58 @@ export default function AssistantPanel({
                 </div>
               )}
 
-              {/* Citation button */}
-              {msg.citation_url && !isError && (
-                <div className="mt-1.5 animate-fade-in">
+              {/* Action Buttons: Citation + Copy */}
+              <div className="flex items-center gap-2 mt-2 ml-1">
+                {msg.citation_url && !isError && (
                   <button
                     onClick={() => window.open(msg.citation_url, "_blank")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[11px] font-bold hover:bg-primary hover:text-white transition-all shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1 bg-surface-container hover:bg-primary/10 text-primary border border-outline-variant/20 rounded-full text-[11px] font-semibold transition-all shadow-2xs cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-[13px]">description</span>
-                    View Source Document
+                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                    <span>Source on Groww</span>
                   </button>
-                </div>
-              )}
+                )}
 
-              <span className="text-[10px] text-on-surface-variant mt-1 ml-0.5 font-medium">
-                Groww AI •{" "}
-                {msg.timestamp
-                  ? new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}
-              </span>
+                {!isError && (
+                  <button
+                    onClick={() => handleCopy(msg.content, index)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-on-surface-variant/70 hover:text-on-surface text-[11px] font-medium rounded-full hover:bg-surface-container transition-colors cursor-pointer"
+                    title="Copy answer"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">
+                      {copiedIndex === index ? "check" : "content_copy"}
+                    </span>
+                    <span>{copiedIndex === index ? "Copied" : "Copy"}</span>
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
 
-        {/* Typing indicator */}
+        {/* Google-style pulsing dots loading state */}
         {isLoading && (
-          <div className="flex items-center gap-2 text-on-surface-variant/60 ml-1">
-            <span className="material-symbols-outlined animate-spin text-primary text-base">sync</span>
-            <span className="text-xs font-medium animate-pulse">Analyzing...</span>
+          <div className="flex items-center gap-2.5 p-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/15 max-w-[200px] shadow-xs">
+            <span className="material-symbols-outlined text-primary text-sm animate-spin">
+              autorenew
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="text-xs font-semibold text-on-surface-variant ml-1.5">Analyzing...</span>
+            </div>
           </div>
         )}
 
-        <div ref={bottomRef} className="h-2" />
+        <div ref={bottomRef} className="h-1" />
       </div>
 
-      {/* ── RAG compliance badge ── */}
-      {messages.length > 0 && !isLoading && (
-        <div className="px-5 py-2 flex justify-center bg-surface-container-low border-t border-surface-container">
-          <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-[2px]">
-            RAG Compliant · Source: Groww Direct
-          </span>
-        </div>
-      )}
-
-      {/* ── Input area ── */}
-      <footer className="p-4 bg-white/80 backdrop-blur-xl border-t border-surface-container-low pb-6">
-        <form onSubmit={handleSend} className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <span className="material-symbols-outlined text-on-surface-variant text-lg">search</span>
+      {/* ── Floating Pill Input Footer (Google Style) ── */}
+      <footer className="p-3.5 bg-surface-container-lowest border-t border-outline-variant/15 shrink-0">
+        <form onSubmit={handleSend} className="relative flex items-center">
+          <div className="absolute left-3.5 flex items-center pointer-events-none text-on-surface-variant/70">
+            <span className="material-symbols-outlined text-[18px]">search</span>
           </div>
           <input
             autoFocus
@@ -282,29 +330,38 @@ export default function AssistantPanel({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            className={`w-full bg-surface-container-low border-none rounded-xl py-3 pl-10 pr-12 text-xs focus:ring-2 focus:ring-primary/30 transition-all placeholder:text-on-surface-variant/50 outline-none ${
+            className={`w-full bg-surface-container-low focus:bg-surface-container-lowest border border-outline-variant/20 focus:border-primary/40 rounded-full py-2.5 pl-10 pr-11 text-xs text-on-surface placeholder:text-on-surface-variant/60 focus:ring-2 focus:ring-primary/15 transition-all outline-none ${
               isInitializing ? "animate-pulse" : ""
             }`}
-            placeholder={isInitializing ? "AI engine waking up..." : "Ask about any fund…"}
+            placeholder={
+              isInitializing
+                ? "Connecting to RAG engine..."
+                : "Ask about any mutual fund or compare…"
+            }
             type="text"
           />
           <button
             type="submit"
             disabled={!query.trim() || isInitializing || isLoading}
-            className="absolute inset-y-1.5 right-1.5 px-3 bg-primary text-white rounded-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-40 disabled:hover:scale-100"
+            className="absolute right-1.5 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 cursor-pointer shadow-xs"
+            aria-label="Send query"
           >
             {isInitializing ? (
-               <span className="material-symbols-outlined text-base animate-spin">sync</span>
+              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
             ) : (
-              <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
-                send
+              <span
+                className="material-symbols-outlined text-[15px]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                arrow_upward
               </span>
             )}
           </button>
         </form>
-        <p className="mt-2 text-center text-[10px] text-on-surface-variant/60 italic">
-          AI responses may occasionally be inaccurate.
-        </p>
+        <div className="flex items-center justify-between px-2 mt-2 text-[10px] text-on-surface-variant/60">
+          <span>Grounded RAG Compliant</span>
+          <span>Source: Official Groww Data</span>
+        </div>
       </footer>
     </section>
   );

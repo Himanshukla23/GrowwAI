@@ -2,40 +2,48 @@
 
 import { useState } from "react";
 
-// ── Material Design 3-inspired Line/Area chart ──────────────────────────────────
-function LineChart({ data, color = "#00a86b" }) {
-  const max = Math.max(...data.map((d) => d.value)) * 1.1; // 10% padding on top
-  const min = Math.min(...data.map((d) => d.value)) * 0.9;
-  const range = max - min;
-  
-  const width = 500;
-  const height = 140;
-  const paddingLeft = 40;
-  const paddingRight = 10;
+// ── Google Finance-inspired Line/Area chart ──────────────────────────────────
+function LineChart({ data, color = "#006c4f" }) {
+  if (!data || data.length === 0) return null;
+
+  const max = Math.max(...data.map((d) => d.value)) * 1.05;
+  const min = Math.min(...data.map((d) => d.value)) * 0.95;
+  const range = max - min || 1;
+
+  const width = 600;
+  const height = 150;
+  const paddingLeft = 45;
+  const paddingRight = 15;
   const paddingTop = 20;
-  const paddingBottom = 30;
-  
+  const paddingBottom = 25;
+
   const usableWidth = width - paddingLeft - paddingRight;
   const usableHeight = height - paddingTop - paddingBottom;
 
-  // Calculate coordinates
   const points = data.map((d, i) => {
     const x = paddingLeft + (i / (data.length - 1)) * usableWidth;
     const y = height - paddingBottom - ((d.value - min) / range) * usableHeight;
     return { x, y, label: d.label, value: d.value };
   });
 
-  // Construct path string
-  const pathD = points.length > 0 
-    ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
-    : "";
-    
-  const areaD = points.length > 0
-    ? `${pathD} L ${points[points.length-1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
-    : "";
+  const pathD =
+    points.length > 0
+      ? `M ${points[0].x} ${points[0].y} ` +
+        points
+          .slice(1)
+          .map((p) => `L ${p.x} ${p.y}`)
+          .join(" ")
+      : "";
+
+  const areaD =
+    points.length > 0
+      ? `${pathD} L ${points[points.length - 1].x} ${
+          height - paddingBottom
+        } L ${points[0].x} ${height - paddingBottom} Z`
+      : "";
 
   return (
-    <div className="w-full select-none" style={{ fontFamily: "inherit" }}>
+    <div className="w-full select-none">
       <svg
         viewBox={`0 0 ${width} ${height}`}
         width="100%"
@@ -43,378 +51,440 @@ function LineChart({ data, color = "#00a86b" }) {
         className="overflow-visible"
       >
         <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          <linearGradient id="googleAreaGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.0" />
           </linearGradient>
         </defs>
 
-        {/* Y Axis Grid & Labels */}
+        {/* Horizontal gridlines */}
         {[0, 0.5, 1].map((ratio) => {
           const y = height - paddingBottom - ratio * usableHeight;
           const val = min + ratio * range;
           return (
             <g key={ratio}>
-              <line 
-                x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} 
-                stroke="#e0e0e0" strokeWidth="0.5" strokeDasharray="4 4" 
+              <line
+                x1={paddingLeft}
+                y1={y}
+                x2={width - paddingRight}
+                y2={y}
+                stroke="#edf0f2"
+                strokeWidth="1"
+                strokeDasharray="3 3"
               />
-              <text x={paddingLeft - 8} y={y + 3} textAnchor="end" fontSize="8" fill="#90a4ae" fontWeight="600">
-                {Math.round(val/1000)}k
+              <text
+                x={paddingLeft - 8}
+                y={y + 3}
+                textAnchor="end"
+                fontSize="9"
+                fill="#80868b"
+                fontFamily="monospace"
+                fontWeight="500"
+              >
+                ₹{Math.round(val)}
               </text>
             </g>
           );
         })}
 
         {/* X Axis labels */}
-        {points.filter((_, i) => data.length < 15 || i % Math.floor(data.length/6) === 0).map((p, i) => (
-          <text key={i} x={p.x} y={height - 10} textAnchor="middle" fontSize="8" fill="#90a4ae" fontWeight="600">
-            {p.label}
-          </text>
-        ))}
+        {points
+          .filter((_, i) => data.length < 8 || i % Math.ceil(data.length / 5) === 0)
+          .map((p, i) => (
+            <text
+              key={i}
+              x={p.x}
+              y={height - 6}
+              textAnchor="middle"
+              fontSize="9"
+              fill="#80868b"
+              fontWeight="500"
+            >
+              {p.label}
+            </text>
+          ))}
 
         {/* Area Fill */}
-        <path d={areaD} fill="url(#areaGradient)" style={{ transition: 'all 0.5s ease' }} />
+        <path d={areaD} fill="url(#googleAreaGradient)" className="transition-all duration-300" />
 
         {/* Main Line */}
-        <path d={pathD} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'all 0.5s ease' }} />
+        <path
+          d={pathD}
+          fill="none"
+          stroke={color}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="transition-all duration-300"
+        />
 
-        {/* Data Points (Dots) */}
-        {points.map((p, i) => (
-          <circle 
-            key={i} 
-            cx={p.x} 
-            cy={p.y} 
-            r="3" 
-            fill="white" 
-            stroke={color} 
+        {/* Last Point Indicator */}
+        {points.length > 0 && (
+          <circle
+            cx={points[points.length - 1].x}
+            cy={points[points.length - 1].y}
+            r="4"
+            fill={color}
+            stroke="#ffffff"
             strokeWidth="2"
-            className="hover:r-4 transition-all cursor-pointer"
           />
-        ))}
-        
-        {/* X Axis Baseline */}
-        <line x1={paddingLeft} y1={height - paddingBottom} x2={width - paddingRight} y2={height - paddingBottom} stroke="#cfd8dc" strokeWidth="1" />
+        )}
       </svg>
     </div>
   );
 }
 
-// ── Speedometer / gauge for risk ──────────────────────────────────────────────
-function RiskGauge({ risk }) {
-  const isHigh = risk?.toLowerCase().includes("high");
-  const isMod = risk?.toLowerCase().includes("moderate");
-  const color = isHigh ? "#d32f2f" : isMod ? "#f57c00" : "#00897b";
-  const bgColor = isHigh ? "#ffebee" : isMod ? "#fff3e0" : "#e0f2f1";
-  // needle angle: low=−60°, mod=0°, high=+60°
-  const angle = isHigh ? 60 : isMod ? 0 : -60;
-  const rad = ((angle - 90) * Math.PI) / 180;
-  const cx = 60, cy = 60, r = 44;
-  const nx = cx + r * Math.cos(rad);
-  const ny = cy + r * Math.sin(rad);
+// ── Google Material Design 3 Speedometer ─────────────────────────────────────
+function RiskMeter({ risk = "Moderately High" }) {
+  const rLower = (risk || "").toLowerCase();
+  const isVeryHigh = rLower.includes("very high");
+  const isHigh = rLower.includes("high") && !isVeryHigh;
+  const isMod = rLower.includes("moderate") || rLower.includes("medium");
+
+  const activeColor = isVeryHigh
+    ? "#c5221f"
+    : isHigh
+    ? "#ea8600"
+    : isMod
+    ? "#137333"
+    : "#1a73e8";
+
+  const segments = [
+    { label: "Low", color: "#1a73e8", active: !isMod && !isHigh && !isVeryHigh },
+    { label: "Moderate", color: "#137333", active: isMod },
+    { label: "High", color: "#ea8600", active: isHigh },
+    { label: "Very High", color: "#c5221f", active: isVeryHigh },
+  ];
 
   return (
-    <svg viewBox="0 0 120 70" width="120" height="70">
-      {/* Gauge arc segments */}
-      {[
-        { start: 180, end: 240, c: "#64b5f6" },
-        { start: 240, end: 300, c: "#ffb74d" },
-        { start: 300, end: 360, c: "#e57373" },
-      ].map(({ start, end, c }, idx) => {
-        const s = ((start - 90) * Math.PI) / 180;
-        const e = ((end - 90) * Math.PI) / 180;
-        const x1 = cx + r * Math.cos(s),
-          y1 = cy + r * Math.sin(s);
-        const x2 = cx + r * Math.cos(e),
-          y2 = cy + r * Math.sin(e);
-        return (
-          <path
-            key={idx}
-            d={`M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`}
-            fill="none"
-            stroke={c}
-            strokeWidth="10"
-            strokeLinecap="round"
-          />
-        );
-      })}
-      {/* Needle */}
-      <line
-        x1={cx}
-        y1={cy}
-        x2={nx}
-        y2={ny}
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-      />
-      <circle cx={cx} cy={cy} r="4" fill={color} />
-    </svg>
-  );
-}
-
-// ── Stat tile ──────────────────────────────────────────────────────────────────
-function StatTile({ label, value, sub }) {
-  return (
-    <div className="flex flex-col gap-0.5 p-3 bg-surface-container-low rounded-xl">
-      <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider leading-none">
-        {label}
-      </p>
-      <p className="text-lg font-extrabold font-headline text-on-surface leading-tight">
-        {value}
-      </p>
-      {sub && <p className="text-[10px] text-on-surface-variant">{sub}</p>}
-    </div>
-  );
-}
-
-// ── Section card wrapper ──────────────────────────────────────────────────────
-function Card({ title, children, className = "" }) {
-  return (
-    <div
-      className={`bg-surface-container-lowest rounded-2xl border border-outline-variant/10 shadow-sm overflow-hidden ${className}`}
-    >
-      {title && (
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-            {title}
-          </p>
-        </div>
-      )}
-      <div className="px-5 pb-5">{children}</div>
-    </div>
-  );
-}
-
-// ── Holdings percentage bar ───────────────────────────────────────────────────
-function HoldingBar({ name, value }) {
-  const pct = parseFloat(value) || 50;
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between items-center">
-        <span className="text-xs font-semibold text-on-surface truncate max-w-[70%]">{name}</span>
-        <span className="text-xs font-bold text-primary">{value}</span>
+    <div className="flex flex-col items-center w-full">
+      <div className="grid grid-cols-4 gap-1.5 w-full max-w-[240px] my-3">
+        {segments.map((s, i) => (
+          <div key={i} className="flex flex-col items-center gap-1">
+            <div
+              className={`h-2 w-full rounded-full transition-all ${
+                s.active ? "shadow-xs scale-y-125" : "opacity-25"
+              }`}
+              style={{ backgroundColor: s.color }}
+            />
+            <span
+              className={`text-[9px] font-bold uppercase tracking-wider text-center ${
+                s.active ? "text-on-surface font-extrabold" : "text-on-surface-variant/50"
+              }`}
+            >
+              {s.label}
+            </span>
+          </div>
+        ))}
       </div>
-      <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-        <div
-          className="bg-gradient-to-r from-primary to-primary-container h-full rounded-full"
-          style={{ width: `${Math.min(pct, 100)}%` }}
+      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-outline-variant/15">
+        <span
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: activeColor }}
         />
+        <span className="text-xs font-bold text-on-surface">
+          Riskometer: {risk}
+        </span>
       </div>
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function DashboardWorkspace({ fundData, onCompareClick }) {
+// ── Google-style Clean Stat Tile ─────────────────────────────────────────────
+function StatTile({ label, value, sub, mono = false }) {
+  return (
+    <div className="p-3.5 bg-surface-container-low/60 rounded-xl border border-outline-variant/10 flex flex-col justify-between">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 mb-1">
+        {label}
+      </span>
+      <span className={`text-base font-extrabold text-on-surface ${mono ? "font-mono" : ""}`}>
+        {value}
+      </span>
+      {sub && <span className="text-[10px] text-on-surface-variant/70 mt-0.5">{sub}</span>}
+    </div>
+  );
+}
+
+// ── Main Dashboard Workspace ──────────────────────────────────────────────────
+export default function DashboardWorkspace({ fundData, onCompareClick, onSelectFund }) {
   const [chartRange, setChartRange] = useState("1Y");
+
+  // Verified Groww funds showcase
+  const TOP_GROWW_FUNDS = [
+    {
+      name: "SBI Contra Direct Plan Growth",
+      category: "Equity • Value Oriented",
+      nav: "₹414.54",
+      cagr3Y: "11.80%",
+      er: "0.86%",
+      aum: "₹45,067 Cr",
+      risk: "Moderately High",
+      query: "What is the expense ratio and NAV of SBI Contra Fund?",
+    },
+    {
+      name: "Nippon India Large Cap Direct Growth",
+      category: "Equity • Large Cap",
+      nav: "₹101.36",
+      cagr3Y: "12.56%",
+      er: "0.85%",
+      aum: "₹51,296 Cr",
+      risk: "Moderately High",
+      query: "What is the expense ratio and NAV of Nippon India Large Cap Fund?",
+    },
+    {
+      name: "HDFC Mid Cap Fund Direct Growth",
+      category: "Equity • Mid Cap",
+      nav: "₹196.20",
+      cagr3Y: "24.10%",
+      er: "0.78%",
+      aum: "₹68,140 Cr",
+      risk: "Very High",
+      query: "What are the details of HDFC Mid Cap Fund?",
+    },
+    {
+      name: "ICICI Prudential Large Cap Direct Growth",
+      category: "Equity • Large Cap",
+      nav: "₹96.15",
+      cagr3Y: "13.40%",
+      er: "0.70%",
+      aum: "₹48,920 Cr",
+      risk: "Very High",
+      query: "What is the NAV of ICICI Prudential Large Cap Fund?",
+    },
+  ];
 
   const chartDataMap = {
     "1M": [
-      { label: "W1", value: 48200 }, { label: "W2", value: 50100 },
-      { label: "W3", value: 49800 }, { label: "W4", value: 54200 },
+      { label: "05 Oct", value: 405 },
+      { label: "12 Oct", value: 409 },
+      { label: "19 Oct", value: 407 },
+      { label: "26 Oct", value: 412 },
+      { label: "05 Nov", value: 414.54 },
     ],
     "6M": [
-      { label: "Nov", value: 44000 }, { label: "Dec", value: 46500 },
-      { label: "Jan", value: 45800 }, { label: "Feb", value: 48900 },
-      { label: "Mar", value: 51000 }, { label: "Apr", value: 54200 },
+      { label: "May", value: 375 },
+      { label: "Jun", value: 388 },
+      { label: "Jul", value: 395 },
+      { label: "Aug", value: 402 },
+      { label: "Sep", value: 408 },
+      { label: "Nov", value: 414.54 },
     ],
     "1Y": [
-      { label: "May", value: 38000 }, { label: "Jun", value: 40500 },
-      { label: "Jul", value: 42000 }, { label: "Aug", value: 41000 },
-      { label: "Sep", value: 44500 }, { label: "Oct", value: 47000 },
-      { label: "Nov", value: 45500 }, { label: "Dec", value: 48000 },
-      { label: "Jan", value: 49500 }, { label: "Feb", value: 51000 },
-      { label: "Mar", value: 52800 }, { label: "Apr", value: 54200 },
+      { label: "Nov '25", value: 340 },
+      { label: "Jan '26", value: 355 },
+      { label: "Mar '26", value: 370 },
+      { label: "May '26", value: 382 },
+      { label: "Jul '26", value: 398 },
+      { label: "Sep '26", value: 409 },
+      { label: "Nov '26", value: 414.54 },
     ],
     "3Y": [
-      { label: "2022", value: 28000 }, { label: "2023", value: 38000 },
-      { label: "2024", value: 48000 }, { label: "2025", value: 54200 },
+      { label: "2023", value: 295 },
+      { label: "2024", value: 345 },
+      { label: "2025", value: 380 },
+      { label: "2026", value: 414.54 },
     ],
     "5Y": [
-      { label: "2021", value: 20000 }, { label: "2022", value: 28000 },
-      { label: "2023", value: 38000 }, { label: "2024", value: 48000 },
-      { label: "2025", value: 54200 },
+      { label: "2021", value: 215 },
+      { label: "2022", value: 260 },
+      { label: "2023", value: 295 },
+      { label: "2024", value: 345 },
+      { label: "2025", value: 380 },
+      { label: "2026", value: 414.54 },
     ],
   };
 
-  // ── Welcome state (no fund selected) ──────────────────────────────────────
+  // ── Welcome Screen (Google Finance Aesthetic) ────────────────────────────────
   if (!fundData) {
     return (
-      <div className="flex-1 p-6 bg-surface-container-low min-h-full">
-        {/* Header */}
-        <div className="mb-6 flex justify-between items-center">
+      <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-headline font-bold text-on-surface tracking-tight">
-              Welcome Back, Investor
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-primary mb-1">
+              <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                insights
+              </span>
+              <span>Groww Market Intelligence</span>
+            </div>
+            <h2 className="font-headline text-2xl md:text-3xl font-extrabold text-on-surface tracking-tight">
+              Mutual Fund Analytics & Research
             </h2>
-            <p className="text-sm text-on-surface-variant mt-0.5">
-              Real-time portfolio intelligence and fund analysis.
+            <p className="text-xs md:text-sm text-on-surface-variant/80 mt-1 max-w-2xl leading-relaxed">
+              Explore official scheme facts, compare portfolio performance, and query the grounded Groww AI engine.
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-variant/20 px-3 py-1.5 rounded-full shadow-sm">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
-              Live Data
-            </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onCompareClick}
+              className="px-4 py-2 bg-gradient-to-r from-primary to-primary-container text-white font-semibold rounded-full text-xs shadow-xs hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">compare_arrows</span>
+              <span>Compare Funds</span>
+            </button>
           </div>
         </div>
 
-        {/* Bento grid */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* Portfolio overview + chart */}
-          <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-2xl p-5 shadow-sm border border-outline-variant/10">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold tracking-widest uppercase mb-2">
-                  Portfolio Overview
-                </span>
-                <p className="text-xs text-on-surface-variant font-medium">Total Market Growth</p>
-                <h3 className="text-3xl font-headline font-extrabold text-on-surface mt-0.5">
-                  ₹12,84,500
-                </h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-                    +14.2%
+        {/* Featured Market Funds Table (Google Finance Style) */}
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 shadow-xs overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-outline-variant/15 flex items-center justify-between bg-surface-container-low/40">
+            <div>
+              <h4 className="font-headline text-xs font-bold uppercase tracking-wider text-on-surface">
+                Verified Funds in Focus (Live Nov 2026)
+              </h4>
+            </div>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+              Chroma RAG Synced
+            </span>
+          </div>
+
+          <div className="divide-y divide-outline-variant/10 text-xs">
+            {TOP_GROWW_FUNDS.map((fund, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-12 py-3.5 px-5 items-center hover:bg-surface-container-low/40 transition-colors"
+              >
+                <div className="col-span-12 sm:col-span-5 mb-2 sm:mb-0">
+                  <span className="font-bold text-on-surface text-xs block leading-snug">
+                    {fund.name}
                   </span>
-                  <span className="text-on-surface-variant text-xs">Past 30 days</span>
+                  <span className="text-[10px] text-on-surface-variant/70 font-medium">
+                    {fund.category} • {fund.aum}
+                  </span>
+                </div>
+
+                <div className="col-span-4 sm:col-span-2">
+                  <span className="text-[10px] text-on-surface-variant/70 block uppercase font-semibold">
+                    NAV
+                  </span>
+                  <span className="font-mono font-bold text-on-surface text-xs">
+                    {fund.nav}
+                  </span>
+                </div>
+
+                <div className="col-span-4 sm:col-span-2">
+                  <span className="text-[10px] text-on-surface-variant/70 block uppercase font-semibold">
+                    Expense Ratio
+                  </span>
+                  <span className="font-mono font-bold text-primary text-xs">
+                    {fund.er}
+                  </span>
+                </div>
+
+                <div className="col-span-4 sm:col-span-3 flex items-center justify-end gap-2">
+                  <span className="hidden md:inline px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container text-on-surface-variant">
+                    {fund.risk}
+                  </span>
+                  <button
+                    onClick={() => onSelectFund && onSelectFund(fund.query)}
+                    className="px-3 py-1 rounded-full bg-primary/10 hover:bg-primary text-primary hover:text-white font-semibold text-[11px] transition-all cursor-pointer"
+                  >
+                    Analyze
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Labeled line chart */}
-            <LineChart
-              data={chartDataMap["1Y"]}
-              color="#00a86b"
-            />
+            ))}
           </div>
+        </div>
 
-          {/* Invest Now card */}
-          <div className="col-span-12 lg:col-span-4 bg-gradient-to-br from-primary to-[#00D09C] p-5 rounded-2xl shadow-lg flex flex-col justify-between text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 blur-2xl rounded-full -mr-8 -mt-8" />
-            <div className="relative z-10">
-              <span className="material-symbols-outlined text-3xl mb-3 text-white/90">
-                account_balance_wallet
-              </span>
-              <h4 className="text-xl font-headline font-bold">Invest Now</h4>
-              <p className="text-white/80 text-xs mt-2 leading-relaxed">
-                Maximize returns with curated AI recommendations based on your risk profile.
+        {/* Quick Launchpad to Comparisons */}
+        <div className="bg-gradient-to-r from-surface-container-lowest to-surface-container-low rounded-2xl p-5 border border-primary/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-2xl">compare_arrows</span>
+            </div>
+            <div>
+              <h5 className="font-headline font-bold text-sm text-on-surface">
+                Ready to Compare Schemes?
+              </h5>
+              <p className="text-xs text-on-surface-variant/80">
+                Run side-by-side performance audits between SBI Contra, Nippon Large Cap, and HDFC Mid Cap.
               </p>
             </div>
-            <button className="bg-white text-primary font-bold py-2.5 rounded-xl mt-6 hover:brightness-105 transition-all shadow-md text-sm">
-              Explore Top Funds
-            </button>
           </div>
-
-          {/* Watchlist */}
-          <div className="col-span-12 lg:col-span-6 bg-surface-container-lowest p-4 rounded-2xl shadow-sm border border-outline-variant/10">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="font-bold text-sm text-on-surface">Watchlist Highlights</h4>
-              <span className="text-primary font-bold text-xs cursor-pointer hover:underline">View All</span>
-            </div>
-            <div className="space-y-1">
-              {[
-                { n: "SBI Gold Fund", c: "Commodities", p: "21.45", change: "+1.2%", color: "bg-orange-100 text-orange-600", initial: "S" },
-                { n: "HDFC Mid Cap", c: "Equity · Mid Cap", p: "142.18", change: "-0.4%", color: "bg-blue-100 text-blue-600", initial: "H", neg: true },
-                { n: "ICICI Large Cap", c: "Equity · Large Cap", p: "84.12", change: "+0.8%", color: "bg-emerald-100 text-emerald-600", initial: "I" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${item.color}`}>{item.initial}</div>
-                    <div>
-                      <p className="font-semibold text-xs text-on-surface">{item.n}</p>
-                      <p className="text-[10px] text-on-surface-variant font-medium">{item.c}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-xs text-on-surface">₹{item.p}</p>
-                    <p className={`text-[11px] font-bold ${item.neg ? "text-error" : "text-primary"}`}>{item.change}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Market sentiment placeholder */}
-          <div className="col-span-12 lg:col-span-6 bg-surface-container-lowest p-4 rounded-2xl shadow-sm border border-outline-variant/10 flex items-center justify-center min-h-[160px]">
-            <div className="text-center">
-              <span className="material-symbols-outlined text-3xl text-primary mb-2">insights</span>
-              <p className="font-bold text-sm text-on-surface">Live Market Sentiment</p>
-              <p className="text-xs text-on-surface-variant mt-1">Ask AI to analyze specific sectors</p>
-            </div>
-          </div>
+          <button
+            onClick={onCompareClick}
+            className="px-5 py-2 bg-primary text-white font-semibold rounded-full text-xs shadow-xs hover:brightness-105 active:scale-95 transition-all shrink-0 cursor-pointer"
+          >
+            Launch Comparison Engine
+          </button>
         </div>
       </div>
     );
   }
 
-  // ── Fund detail view ───────────────────────────────────────────────────────
+  // ── Fund Detail View (Google Finance Single Stock/Fund View) ─────────────────
   const isNeg = fundData.change?.includes("-");
-  const chartColor = isNeg ? "#d32f2f" : "#00a86b";
-  const chartData = chartDataMap[chartRange];
+  const chartColor = isNeg ? "#c5221f" : "#006c4f";
+  const chartData = chartDataMap[chartRange] || chartDataMap["1Y"];
 
   return (
-    <div className="flex-1 p-6 pb-24 bg-surface min-h-full">
-
-      {/* Fund Header */}
-      <section className="mb-5">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold tracking-widest rounded-full uppercase">
-            Mutual Fund
-          </span>
-          <span className="text-outline-variant text-xs">•</span>
-          <span className="text-on-surface-variant font-semibold text-xs">{fundData.type || "Equity"}</span>
-        </div>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-extrabold font-headline text-on-surface tracking-tight leading-tight">
-              {fundData.name || "SBI Gold Fund"}
-            </h2>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-              <span className="text-on-surface-variant font-medium text-xs">{fundData.plan || "Direct Plan · Growth"}</span>
-            </div>
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in pb-28">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
+              {fundData.type || "Equity Mutual Fund"}
+            </span>
+            <span className="text-outline-variant">•</span>
+            <span className="text-xs text-on-surface-variant font-medium">
+              {fundData.plan || "Direct Plan • Growth"}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onCompareClick}
-              className="px-4 py-2 rounded-full border border-outline-variant/50 text-on-surface font-semibold hover:bg-surface-container transition-all flex items-center gap-1.5 shadow-sm text-xs"
-            >
-              <span className="material-symbols-outlined text-[15px]">compare_arrows</span>
-              Compare
-            </button>
-            <button className="px-5 py-2 rounded-full bg-gradient-to-r from-primary to-primary-container text-white font-semibold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 text-xs">
-              <span className="material-symbols-outlined text-[15px]">analytics</span>
-              Save Analysis
-            </button>
-          </div>
+          <h2 className="font-headline text-2xl md:text-3xl font-extrabold text-on-surface tracking-tight leading-tight">
+            {fundData.name || "SBI Contra Direct Plan Growth"}
+          </h2>
         </div>
-      </section>
 
-      {/* NAV + Chart */}
-      <section className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/10 shadow-sm mb-5">
-        <div className="flex justify-between items-start mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCompareClick}
+            className="px-4 py-1.5 rounded-full border border-outline-variant/30 text-on-surface font-semibold hover:bg-surface-container transition-all flex items-center gap-1.5 text-xs shadow-2xs cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[15px]">compare_arrows</span>
+            <span>Compare Scheme</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main NAV & Google Finance Interactive Chart Card */}
+      <div className="bg-surface-container-lowest rounded-2xl p-5 md:p-6 border border-outline-variant/15 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3">
           <div>
-            <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Net Asset Value (NAV)</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-3xl font-extrabold font-headline text-on-surface">₹{fundData.nav || "54.20"}</h3>
-              <span className={`flex items-center gap-0.5 font-bold text-xs px-2 py-0.5 rounded-full ${isNeg ? "text-error bg-error/10" : "text-primary bg-primary/10"}`}>
-                <span className="material-symbols-outlined text-[12px]">{isNeg ? "arrow_downward" : "arrow_upward"}</span>
-                {fundData.change || "+1.2%"}
+            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider block">
+              Net Asset Value (NAV) • {fundData.navDate || "05 Nov 2026"}
+            </span>
+            <div className="flex items-baseline gap-2.5 mt-0.5">
+              <span className="text-3xl md:text-4xl font-extrabold font-mono text-on-surface tracking-tight">
+                ₹{fundData.nav || "414.54"}
+              </span>
+              <span
+                className={`flex items-center gap-0.5 font-bold text-xs px-2 py-0.5 rounded-full ${
+                  isNeg
+                    ? "text-error bg-error/10"
+                    : "text-primary bg-primary/10"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[13px]">
+                  {isNeg ? "arrow_downward" : "arrow_upward"}
+                </span>
+                {fundData.change || "+0.82%"}
               </span>
             </div>
           </div>
-          {/* Range selector */}
-          <div className="flex bg-surface-container-low p-1 rounded-full gap-0.5 border border-outline-variant/10">
+
+          {/* Timeframe Selector (Google Finance Style) */}
+          <div className="flex bg-surface-container-low p-1 rounded-full gap-0.5 border border-outline-variant/15">
             {["1M", "6M", "1Y", "3Y", "5Y"].map((tf) => (
               <button
                 key={tf}
                 onClick={() => setChartRange(tf)}
-                className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all ${
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
                   tf === chartRange
-                    ? "bg-white text-primary shadow-sm border border-outline-variant/20"
-                    : "text-on-surface-variant hover:text-on-surface"
+                    ? "bg-surface-container-lowest text-primary shadow-xs border border-outline-variant/20"
+                    : "text-on-surface-variant/70 hover:text-on-surface"
                 }`}
               >
                 {tf}
@@ -423,218 +493,70 @@ export default function DashboardWorkspace({ fundData, onCompareClick }) {
           </div>
         </div>
 
-        {/* Labeled line chart */}
-        <LineChart data={chartData} color={chartColor} />
-
-        <div className="flex justify-between items-center mt-1 px-1">
-          <span className="text-[10px] text-on-surface-variant font-medium">
-            {chartRange === "1Y" ? "Apr 2024 – Apr 2025" : chartRange === "5Y" ? "2021 – 2025" : ""}
-          </span>
-          <span className="text-[10px] text-primary font-bold">
-            {isNeg ? "↓ Declining" : "↑ Growing"} trend
-          </span>
+        {/* SVG Chart */}
+        <div className="pt-2">
+          <LineChart data={chartData} color={chartColor} />
         </div>
-      </section>
+      </div>
 
-      {/* Stats grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Key Fund Statistics Grid (Google Finance Layout) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatTile
+          label="Expense Ratio"
+          value={fundData.expenseRatio || "0.86%"}
+          sub="Direct Plan"
+          mono
+        />
+        <StatTile
+          label="Fund Size (AUM)"
+          value={fundData.aum || "₹45,067 Cr"}
+          sub="Total Assets"
+          mono
+        />
+        <StatTile
+          label="Minimum SIP"
+          value={fundData.minInvestment || "₹500"}
+          sub="Monthly Investment"
+          mono
+        />
+        <StatTile
+          label="Exit Load"
+          value={fundData.exitLoad || "0.25% in 30d"}
+          sub="Redemption Terms"
+        />
+      </div>
 
-        {/* Risk Assessment */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col items-center justify-center text-center relative overflow-hidden h-full">
-          <h4 className="absolute top-5 left-5 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest z-10 w-full text-left">Risk Assessment</h4>
+      {/* Risk Assessment & Objective Section */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        {/* Riskometer */}
+        <div className="md:col-span-5 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-xs flex flex-col justify-between">
+          <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider block mb-2">
+            SEBI Riskometer
+          </span>
+          <RiskMeter risk={fundData.risk || "Moderately High"} />
+          <p className="text-[11px] text-on-surface-variant/70 text-center mt-3">
+            Principal investment will be at Moderately High risk according to SEBI mutual fund guidelines.
+          </p>
+        </div>
 
-          {/* Final Polished upward SVG Gauge */}
-          {(() => {
-            const risk = (fundData.risk || "high risk").toLowerCase();
-            const isVeryHigh = risk.includes("very high");
-            const isHigh     = risk.includes("high") && !isVeryHigh;
-            const isMod      = risk.includes("moderate") || risk.includes("medium");
-
-            // Progress: 0.1 to 0.9 range
-            const progress = isVeryHigh ? 0.92 : isHigh ? 0.68 : isMod ? 0.32 : 0.08;
-            const riskColor = isVeryHigh ? "#b71c1c" : isHigh ? "#e65100" : isMod ? "#f9a825" : "#1b5e20";
-
-            // Geometry: Center (100, 105), Track Radius 65, Label Radius 86
-            const CX = 100, CY = 105, R = 65, LR = 86;
-
-            const arc = (startPct, endPct, radius = R) => {
-              const sRad = (startPct * 180 * Math.PI) / 180;
-              const eRad = (endPct * 180 * Math.PI) / 180;
-              const x1 = CX - radius * Math.cos(sRad);
-              const y1 = CY - radius * Math.sin(sRad);
-              const x2 = CX - radius * Math.cos(eRad);
-              const y2 = CY - radius * Math.sin(eRad);
-              return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
-            };
-
-            const getPoint = (pct, radius) => {
-              const rad = (pct * 180 * Math.PI) / 180;
-              return {
-                x: CX - radius * Math.cos(rad),
-                y: CY - radius * Math.sin(rad)
-              };
-            };
-
-            const nx = getPoint(progress, 60).x;
-            const ny = getPoint(progress, 60).y;
-
-            return (
-              <div className="relative mt-12 mb-4 w-full flex justify-center">
-                <svg viewBox="0 10 200 110" width="240" height="120" className="overflow-visible">
-                  <defs>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-
-                  {/* Faded Background Track */}
-                  <path d={arc(0, 1)} fill="none" stroke="#f0f0f0" strokeWidth="12" strokeLinecap="round" />
-
-                  {/* Segmented zones */}
-                  <g fill="none" strokeWidth="12" strokeLinecap="round">
-                    <path d={arc(0, 0.25)} stroke="#d1e7dd" />
-                    <path d={arc(0.25, 0.5)} stroke="#fff3cd" />
-                    <path d={arc(0.5, 0.75)} stroke="#ffe5d0" />
-                    <path d={arc(0.75, 1)} stroke="#f8d7da" />
-                  </g>
-
-                  {/* Active segment with glow */}
-                  <path d={arc(0, progress)} fill="none" stroke={riskColor} strokeWidth="12" strokeLinecap="round" filter="url(#glow)" style={{ transition: 'all 1.2s' }} />
-
-                  {/* Outer Labels (Avoiding arc overlap) */}
-                  <g fontSize="8" fontWeight="800" fill="#adb5bd">
-                    <text x={getPoint(0.04, LR).x} y={getPoint(0.04, LR).y} textAnchor="middle">Low</text>
-                    <text x={getPoint(0.35, LR).x} y={getPoint(0.35, LR).y} textAnchor="middle">Mod</text>
-                    <text x={getPoint(0.65, LR).x} y={getPoint(0.65, LR).y} textAnchor="middle">High</text>
-                    <text x={getPoint(0.96, LR).x} y={getPoint(0.96, LR).y} textAnchor="middle">V.High</text>
-                  </g>
-
-                  {/* Needle */}
-                  <g style={{ transition: 'all 0.8s ease-out' }}>
-                    <line x1={CX} y1={CY} x2={nx} y2={ny} stroke={riskColor} strokeWidth="6" strokeLinecap="round" />
-                    <circle cx={CX} cy={CY} r="10" fill="white" stroke={riskColor} strokeWidth="3" />
-                    <circle cx={CX} cy={CY} r="4" fill={riskColor} />
-                  </g>
-                </svg>
-              </div>
-            );
-          })()}
-
-          <div className="mt-4">
-            <h3 className={`font-headline font-black text-2xl tracking-tight leading-none ${
-               (fundData.risk || "").toLowerCase().includes("very high") ? "text-red-800" :
-               (fundData.risk || "").toLowerCase().includes("high")      ? "text-orange-700" :
-               (fundData.risk || "").toLowerCase().includes("moderate")  ? "text-amber-600" : "text-green-800"
-            }`}>
-              {fundData.risk || "High Risk"}
-            </h3>
-            <p className="text-[10px] text-on-surface-variant/80 mt-2 font-bold uppercase tracking-widest max-w-[200px]">
-              Risk Category
+        {/* Investment Objective */}
+        <div className="md:col-span-7 bg-surface-container-lowest p-5 rounded-2xl border border-outline-variant/15 shadow-xs flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider block mb-2">
+              Investment Objective & Strategy
+            </span>
+            <p className="text-xs text-on-surface-variant/90 leading-relaxed">
+              {fundData.desc ||
+                "The scheme seeks to provide the investor with long-term capital appreciation by investing in a diversified portfolio of equity and equity-related securities following a contrarian investment strategy across recognized sectors."}
             </p>
           </div>
-        </div>
 
-        {/* Holdings */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col">
-          <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">Top Holdings Breakdown</h4>
-          <div className="flex-1 flex flex-col gap-3">
-            {fundData.holdings && fundData.holdings.length > 0 ? (
-              // Cap at 5 items, strip % for bar width
-              fundData.holdings.slice(0, 5).map((h, i) => {
-                const pct = parseFloat(String(h.value).replace("%", "")) || 30;
-                const barColors = ["bg-primary", "bg-primary/80", "bg-primary/60", "bg-primary/45", "bg-primary/30"];
-                return (
-                  <div key={i} className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-semibold text-on-surface truncate max-w-[65%]">{h.name}</span>
-                      <span className="text-xs font-bold text-primary">{h.value}</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`${barColors[i]} h-full rounded-full transition-all`}
-                        style={{ width: `${Math.min(pct, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              // Fallback: build synthetic bars from available fund data
-              (() => {
-                const syntheticItems = [
-                  { name: "Equity / Primary Asset", value: "70%", pct: 70 },
-                  { name: fundData.category || "Core Sector", value: "20%", pct: 20 },
-                  { name: "Cash & Equivalents", value: "10%", pct: 10 },
-                ];
-                return (
-                  <div className="flex flex-col gap-3">
-                    {syntheticItems.map((h, i) => (
-                      <div key={i} className="flex flex-col gap-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs font-semibold text-on-surface">{h.name}</span>
-                          <span className="text-xs font-bold text-on-surface-variant">{h.value}</span>
-                        </div>
-                        <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-primary/40 h-full rounded-full"
-                            style={{ width: `${h.pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    <p className="text-[10px] text-on-surface-variant/60 italic mt-1">
-                      Estimated allocation · Detailed breakdown unavailable
-                    </p>
-                  </div>
-                );
-              })()
-            )}
-          </div>
-          {fundData.holdings && fundData.holdings.length > 0 && (
-            <button className="text-primary text-xs font-bold hover:underline mt-4 flex items-center gap-1 group w-fit">
-              View detailed allocation
-              <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
-            </button>
-          )}
-        </div>
-
-        {/* Key Metrics */}
-        <div className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm border border-outline-variant/10 flex flex-col justify-between">
-          <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4 border-b border-outline-variant/10 pb-3">Key Metrics</h4>
-          <div className="grid grid-cols-2 gap-y-5 flex-1">
-            <div>
-              <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Expense Ratio</p>
-              <p className="font-headline font-extrabold text-xl text-on-surface">{fundData.expenseRatio || "0.64%"}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Exit Load</p>
-              <p className="font-headline font-extrabold text-xl text-on-surface">{fundData.exitLoad || "1%"}</p>
-            </div>
-            <div className="col-span-2">
-              <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider mb-1">Alpha Rating (Proprietary)</p>
-              <div className="flex items-baseline gap-2">
-                <p className="font-headline font-black text-4xl text-primary">{fundData.alphaScore || "8.4"}</p>
-                <p className="text-sm font-bold text-on-surface-variant">/ 10</p>
-              </div>
-              <div className="w-full bg-surface-container h-2 rounded-full mt-3 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-primary to-primary-container h-full rounded-full"
-                  style={{ width: `${(parseFloat(fundData.alphaScore || "8.4") / 10) * 100}%` }}
-                />
-              </div>
-            </div>
+          <div className="mt-4 pt-3 border-t border-outline-variant/10 flex items-center justify-between text-xs font-semibold">
+            <span className="text-on-surface-variant/70">Benchmark Index</span>
+            <span className="font-bold text-on-surface">BSE 500 Total Return Index</span>
           </div>
         </div>
-      </section>
-
-      {/* Disclaimer */}
-      <footer className="fixed bottom-0 left-0 md:left-[280px] right-0 xl:right-[384px] bg-surface/90 backdrop-blur-md border-t border-outline-variant/20 px-6 py-3 z-40 hidden md:flex items-start gap-2 justify-center text-center">
-        <span className="material-symbols-outlined text-on-surface-variant/60 text-sm mt-0.5">info</span>
-        <p className="text-[10px] text-on-surface-variant/70 leading-relaxed max-w-2xl">
-          Groww Assist integrates RAG APIs for analytics. Mutual Fund investments are subject to market risks. Past performance does not guarantee future returns.
-        </p>
-      </footer>
+      </div>
     </div>
   );
 }

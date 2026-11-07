@@ -20,8 +20,6 @@ services:
         value: "groww_mf_chunks_v5"
       - key: CHROMA_API_KEY
         sync: false # Set in Render UI
-      - key: GROQ_MODEL
-        value: "openai/gpt-oss-120b"
       - key: GROQ_API_KEY
         sync: false # Set in Render UI
       - key: GEMINI_API_KEY

@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { ENDPOINTS } from "@/lib/api-config";
 
-export default function Sidebar({ onNewAnalysis, healthData, messageCount, viewMode, setViewMode }) {
+export default function Sidebar({
+  onNewAnalysis,
+  healthData,
+  messageCount = 0,
+  viewMode = "dashboard",
+  setViewMode,
+  isOpen = false,
+  onClose,
+}) {
   const [metrics, setMetrics] = useState(null);
 
   useEffect(() => {
@@ -23,120 +31,213 @@ export default function Sidebar({ onNewAnalysis, healthData, messageCount, viewM
     return () => clearInterval(interval);
   }, []);
 
+  const navItems = [
+    {
+      id: "dashboard",
+      label: "Workspace",
+      icon: "dashboard",
+      onClick: () => {
+        setViewMode && setViewMode("dashboard");
+        onClose && onClose();
+      },
+    },
+    {
+      id: "funds",
+      label: "Top Funds",
+      icon: "trending_up",
+      onClick: () => {
+        setViewMode && setViewMode("dashboard");
+        onClose && onClose();
+      },
+    },
+    {
+      id: "comparison",
+      label: "Compare Funds",
+      icon: "compare_arrows",
+      badge: "Live",
+      onClick: () => {
+        setViewMode && setViewMode("comparison");
+        onClose && onClose();
+      },
+    },
+  ];
+
   return (
-    <aside className="flex flex-col h-screen py-8 px-4 fixed left-0 top-0 bg-surface-container-lowest border-r border-on-surface/[0.08] z-50 w-64 md:w-[280px] hidden md:flex">
-      <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-on-primary shadow-sm">
-          <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>bolt</span>
-        </div>
-        <div>
-          <h1 className="font-headline font-bold text-lg text-on-surface leading-tight tracking-tight">Groww Assist</h1>
-          <p className="text-xs text-on-surface-variant font-medium opacity-70">Premium Assistant</p>
-        </div>
-      </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm md:hidden transition-opacity"
+        />
+      )}
 
-      <button onClick={onNewAnalysis} className="bg-gradient-to-br from-primary to-primary-container text-on-primary font-headline font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-2 mb-8 transition-transform hover:scale-[0.98] active:scale-95 shadow-[0px_12px_32px_rgba(24,27,38,0.06)]">
-        <span className="material-symbols-outlined">add</span>
-        <span>New Analysis</span>
-      </button>
-
-      <nav className="flex-1 space-y-1">
-        <button
-          onClick={() => setViewMode && setViewMode("dashboard")}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-headline font-semibold transition-all relative overflow-hidden text-left ${
-            viewMode === "dashboard"
-              ? "bg-secondary-container/30 text-on-secondary-container shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container-low"
-          }`}
-        >
-          {viewMode === "dashboard" && <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>}
-          <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>dashboard</span>
-          <span>Workspace</span>
-        </button>
-        <button
-          onClick={() => setViewMode && setViewMode("dashboard")}
-          className="w-full flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all group text-left"
-        >
-          <span className="material-symbols-outlined group-hover:text-primary">trending_up</span>
-          <span>Funds</span>
-        </button>
-        <button
-          onClick={() => setViewMode && setViewMode("comparison")}
-          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-headline font-semibold transition-all relative overflow-hidden text-left ${
-            viewMode === "comparison"
-              ? "bg-secondary-container/30 text-on-secondary-container shadow-sm"
-              : "text-on-surface-variant hover:bg-surface-container-low"
-          }`}
-        >
-          {viewMode === "comparison" && <div className="absolute left-0 top-0 bottom-0 w-1 bg-secondary"></div>}
-          <span className="material-symbols-outlined" style={{fontVariationSettings: "'FILL' 1"}}>compare_arrows</span>
-          <span>Comparisons</span>
-        </button>
-        <div className="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-low rounded-xl font-headline font-semibold transition-all justify-between">
+      <aside
+        className={`fixed top-0 bottom-0 left-0 z-50 w-[260px] bg-surface-container-lowest border-r border-outline-variant/15 flex flex-col py-5 px-4 transition-transform duration-300 ease-out md:translate-x-0 ${
+          isOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+        }`}
+      >
+        {/* Header: Logo & Product Title */}
+        <div className="flex items-center justify-between px-2 mb-6">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined">forum</span>
-            <span>AI History</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-primary-container flex items-center justify-center text-white shadow-sm shadow-primary/20">
+              <span
+                className="material-symbols-outlined text-[20px]"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                bolt
+              </span>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-headline font-bold text-base text-on-surface tracking-tight leading-none">
+                  Groww Assist
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
+                  AI
+                </span>
+              </div>
+              <p className="text-[11px] text-on-surface-variant font-medium mt-0.5">
+                Financial Analyst
+              </p>
+            </div>
           </div>
-          {messageCount > 0 && <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-md">{messageCount}</span>}
-        </div>
-      </nav>
 
-      <div className="mt-auto space-y-4 pt-6">
-        <div className="bg-surface-container-low rounded-xl p-4 border border-on-surface/[0.04]">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant opacity-60">System Status</span>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary-container/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-              <span className="text-[10px] font-bold text-on-primary-container">{healthData ? "Operational" : "Connecting"}</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-on-surface-variant">Chunks Processed</span>
-              <span className="font-mono font-bold text-on-surface">{healthData?.indexed_chunks || "-"}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-on-surface-variant">Version</span>
-              <span className="font-mono font-bold text-on-surface">{healthData?.version || "-"}</span>
-            </div>
-          </div>
+          {/* Close button for mobile */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container-high"
+          >
+            <span className="material-symbols-outlined text-lg">close</span>
+          </button>
         </div>
 
-        {metrics && (
-          <div className="bg-surface-container-low rounded-xl p-4 border border-on-surface/[0.04]">
-            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant opacity-60 block mb-3">Performance</span>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-on-surface-variant">Accuracy</span>
-                <span className="text-sm font-bold text-primary">{(metrics.factual_answer_rate * 100).toFixed(0)}%</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-on-surface-variant">Citations</span>
-                <span className="text-sm font-bold text-primary">{(metrics.citation_coverage * 100).toFixed(0)}%</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-on-surface-variant">Latency</span>
-                <span className="text-sm font-bold text-on-surface">{(metrics.avg_latency_ms / 1000).toFixed(1)}s</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] text-on-surface-variant">Queries</span>
-                <span className="text-sm font-bold text-on-surface">{metrics.total_queries}</span>
+        {/* Primary Action Button: Google FAB style */}
+        <button
+          onClick={() => {
+            onNewAnalysis && onNewAnalysis();
+            onClose && onClose();
+          }}
+          className="group w-full bg-gradient-to-r from-primary to-primary-container text-white font-headline font-semibold py-3 px-4 rounded-full flex items-center justify-center gap-2 mb-6 shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:scale-[1.01] active:scale-[0.98] transition-all text-xs"
+        >
+          <span className="material-symbols-outlined text-[18px] transition-transform group-hover:rotate-90">
+            add
+          </span>
+          <span>New Analysis</span>
+        </button>
+
+        {/* Navigation Items (M3 Style Pills) */}
+        <nav className="flex-1 space-y-1">
+          {navItems.map((item) => {
+            const isActive = viewMode === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-semibold transition-all text-left ${
+                  isActive
+                    ? "bg-primary/10 text-primary font-bold shadow-xs"
+                    : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`material-symbols-outlined text-[18px] ${
+                      isActive ? "text-primary" : "text-on-surface-variant/80"
+                    }`}
+                    style={isActive ? { fontVariationSettings: "'FILL' 1" } : {}}
+                  >
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </div>
+                {item.badge && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/15 text-primary uppercase tracking-wider">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          <div className="flex items-center justify-between px-4 py-2.5 rounded-full text-xs font-medium text-on-surface-variant">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-[18px] text-on-surface-variant/80">
+                forum
+              </span>
+              <span>AI Chat History</span>
+            </div>
+            {messageCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface">
+                {messageCount}
+              </span>
+            )}
+          </div>
+        </nav>
+
+        {/* Google Cloud-style System Status Card */}
+        <div className="mt-auto space-y-3 pt-4 border-t border-outline-variant/15">
+          <div className="bg-surface-container-low/70 rounded-2xl p-3.5 border border-outline-variant/10 text-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+                System Health
+              </span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/10">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-[10px] font-bold text-primary">
+                  {healthData?.status === "healthy" ? "Operational" : "Connected"}
+                </span>
               </div>
             </div>
-          </div>
-        )}
 
-        <div className="flex flex-col gap-1 border-t border-on-surface/[0.04] pt-4">
-          <a className="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-primary text-sm font-medium transition-colors" href="#">
-            <span className="material-symbols-outlined text-[20px]">help_outline</span>
-            <span>Help</span>
-          </a>
-          <a className="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:text-primary text-sm font-medium transition-colors" href="#">
-            <span className="material-symbols-outlined text-[20px]">settings</span>
-            <span>Settings</span>
-          </a>
+            <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+              <div>
+                <span className="text-on-surface-variant/70 block text-[9px] uppercase font-semibold">
+                  Chunks
+                </span>
+                <span className="font-mono font-bold text-on-surface">
+                  {healthData?.indexed_chunks || "197"}
+                </span>
+              </div>
+              <div>
+                <span className="text-on-surface-variant/70 block text-[9px] uppercase font-semibold">
+                  Engine
+                </span>
+                <span className="font-mono font-bold text-primary truncate block" title={healthData?.chroma_collection || "groww_mf_chunks_v5"}>
+                  RAG v5
+                </span>
+              </div>
+            </div>
+
+            {metrics && (
+              <div className="mt-2.5 pt-2 border-t border-outline-variant/10 grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <span className="text-on-surface-variant/70 block text-[9px] uppercase font-semibold">
+                    Accuracy
+                  </span>
+                  <span className="font-bold text-primary">
+                    {(metrics.factual_answer_rate * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant/70 block text-[9px] uppercase font-semibold">
+                    Latency
+                  </span>
+                  <span className="font-bold text-on-surface">
+                    {(metrics.avg_latency_ms / 1000).toFixed(1)}s
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Quick links */}
+          <div className="flex items-center justify-between px-2 text-[11px] text-on-surface-variant/60 font-medium">
+            <span>Groww Direct Data</span>
+            <span className="text-[10px]">Nov 2026</span>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
