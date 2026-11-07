@@ -32,6 +32,7 @@ jobs:
           CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
           CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
           CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
+          CHROMA_COLLECTION: "groww_mf_chunks_v5"
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python backend/phase-1-scheduler-service/src/scheduler.py --fail-on-errors

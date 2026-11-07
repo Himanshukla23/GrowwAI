@@ -43,7 +43,7 @@ CHROMA_DATABASE = os.getenv("CHROMA_DATABASE", "").strip()
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 VECTOR_DIMENSION = 384
 # Priority: .env > hardcoded default
-COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks_v4")
+COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "groww_mf_chunks_v5")
 print(f"[indexer] TARGET COLLECTION: {COLLECTION_NAME}")
 BATCH_SIZE = 50           # controlled batch size for throughput and retry safety
 MAX_RETRIES = 3           # per-batch retry count
